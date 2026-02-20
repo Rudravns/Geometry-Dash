@@ -25,6 +25,7 @@ class Editor:
         self.grid = 40
         self.gridx = self.grid - self.screen.get_width() % self.grid
         self.gridy = self.grid - self.screen.get_height() % self.grid
+    
         self.size_multiplier = 1
 
         #world attr
@@ -114,19 +115,31 @@ class Editor:
                     case 1:
                         # (5 - y) because the list has 6 rows (0 to 5)
                         # Row 5 in the list should be just above ground
-                        self.spike.append(Spike((x * self.grid), self.ground_y - ((5 - y) * self.grid), self.grid))
+                        self.spike.append(Spike((x * self.grid)+self.x, self.ground_y - ((5 - y) * self.grid), self.grid))
                     case 2:
-                        self.blocks.append(pygame.Rect((x * self.grid), self.ground_y - ((5 - y) * self.grid), self.grid, self.grid))
+                        self.blocks.append(pygame.Rect(x* self.grid+self.x, self.ground_y - ((5 - y) * self.grid), self.grid, self.grid))
                     case _:
                         continue
-    def update_world(self, speed):
+    def update_world(self, speed, player_hitbox):
         # self.x -= speed # Removed this as it was causing confusion with individual object positions
         for spike in self.spike:
             spike.move(-speed, 0)
             spike.draw(self.screen)
+            
+            
         for block in self.blocks:
             block.move_ip(-speed, 0)
             pygame.draw.rect(self.screen, (255, 255, 255), block)
+
+        for spike in self.spike:
+            if spike.check_collition(player_hitbox):
+                return True
+        for block in self.blocks:
+            if block.colliderect(player_hitbox):
+                return True
+        return False    
+       
+        
     def __str__(self):
         return f"Block: {self.block}"
 
@@ -155,3 +168,25 @@ class Spike:
         
     def draw(self, screen):
         pygame.draw.polygon(screen, (255, 255, 255), self.vert)
+
+    def check_collition(self, hitbox: pygame.Rect) -> bool:
+        # 1. Quick check: is the player even near the spike's bounding area?
+        spike_rect = pygame.Rect(self.x, self.y, self.size, self.size)
+        if not hitbox.colliderect(spike_rect):
+            return False
+
+        # 2. Precise check: do any of the triangle's 3 sides cross the player rect?
+        # We check lines: (0->1), (1->2), and (2->0)
+        lines = [
+            (self.vert[0], self.vert[1]),
+            (self.vert[1], self.vert[2]),
+            (self.vert[2], self.vert[0])
+        ]
+
+        for start, end in lines:
+            if hitbox.clipline(start, end):
+                return True
+
+        # 3. Final check: is the player completely inside the triangle?
+        # (Usually covered by clipline, but good for very small players)
+        return hitbox.collidepoint(self.vert[0])

@@ -19,14 +19,15 @@ class Geometry_dash:
         self.dt = 0
 
         #making of the player
-        self.player = pygame.Rect(100, 0, 50, 50) # x, y, w, h ---> this is the hitbox
+        self.player = pygame.Rect(100, 0, 30, 30) # x, y, w, h ---> this is the hitbox
         self.player_imgs = utilies.SpriteSheet()
         self.player_imgs.extract_single_image("player_sprites/Simple_cube.jpg", self.player.size, 255)
         self.rotation = 0
         self.GRAVITY = -9.8 # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
-        self.mass = 3
+        self.mass = 5
         self.jump = False
+        self.jump_height = 10
         self.mode = "Cube"
 
         #making of ground
@@ -48,7 +49,7 @@ class Geometry_dash:
                 self.apply_player_physics()
             else:
                 self.world.level_editor()
-            self.world.update_world(5)
+            self.world.update_world(500*self.dt, self.player)
             #event handling
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -61,13 +62,13 @@ class Geometry_dash:
                         sys.exit()
 
                     if event.key == pygame.K_SPACE and self.jump:
-                        self.velocity.y = -15
+                        self.velocity.y = -self.jump_height
                         self.jump = False
 
 
                 if event.type == pygame.MOUSEBUTTONDOWN and self.jump:
 
-                        self.velocity.y = -15
+                        self.velocity.y = -self.jump_height
                         self.jump = False
             
             #draw stuff
