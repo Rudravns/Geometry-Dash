@@ -38,6 +38,15 @@ class Editor:
             
         }
 
+        #init textures
+        self.cube_tex = utility.SpriteSheet()
+        self.cube_tex.extract_grid(path="Textures/Cube.png", crop_size=(16,16), scale=(self.grid, self.grid), alpha=255)
+        self.cube_animation_timer = utility.Timer(0.1)
+        self.cube_animation_timer.start()
+        self.cube_img = 0
+
+
+
         self.get_world()
 
     # ===============================
@@ -184,8 +193,13 @@ class Editor:
         for spike in self.objects["Spike"]:
             spike.draw(self.screen, self.x_scroll, self.y_scroll, debug=True)
         for block in self.objects["Block"]:
+            if self.cube_animation_timer.has_elapsed():
+                self.cube_img = (self.cube_img + 1) % len(self.cube_tex.images)
+                self.cube_animation_timer.reset()
+                self.cube_animation_timer.start()
+
             screen_rect = pygame.Rect(block.x - self.x_scroll, block.y - self.y_scroll, block.width, block.height)
-            pygame.draw.rect(self.screen, (255, 255, 255), screen_rect)
+            self.screen.blit(self.cube_tex.get_image(self.cube_img).convert_alpha(), screen_rect)  # pyright: ignore[reportArgumentType]
 
         pygame.draw.rect(self.screen, (255, 255, 0), pygame.Rect(self.objects["Start"].x - self.x_scroll, self.objects["Start"].y - self.y_scroll, self.objects["Start"].width, self.objects["Start"].height)) # pyright: ignore[reportAttributeAccessIssue]
         pygame.draw.rect(self.screen, (255, 0, 255), pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height)) # pyright: ignore[reportAttributeAccessIssue]
@@ -272,8 +286,13 @@ class Editor:
         # Draw blocks within start-end bounds
         for block in self.objects["Block"]:
             if start_x <= block.x <= end_x:
+                if self.cube_animation_timer.has_elapsed():
+                    self.cube_img = (self.cube_img + 1) % len(self.cube_tex.images)
+                    self.cube_animation_timer.reset()
+                    self.cube_animation_timer.start()
                 screen_rect = pygame.Rect(block.x - self.x_scroll, block.y - self.y_scroll, block.width, block.height)
-                pygame.draw.rect(self.screen, (255, 255, 255), screen_rect)
+                self.screen.blit(self.cube_tex.get_image(self.cube_img).convert_alpha(), screen_rect)  # pyright: ignore[reportArgumentType]
+
                 if debug:
                     # Draw the Side and bottom hitbox, the kill hitbox, and then the top hitbox for standing on it
                     pygame.draw.rect(self.screen, (255, 0, 0), screen_rect, 1)  # Red = collision box
