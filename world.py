@@ -1,5 +1,3 @@
-from os import kill
-
 import pygame
 import math
 import utility
@@ -286,37 +284,48 @@ class Editor:
         # Collision (only for objects within bounds)
         for spike in self.objects["Spike"]:
             if start_x <= spike.x <= end_x:
-                if spike.check_collition(player_hitbox):
+                # The player_hitbox is in screen coordinates, but the spike's geometry is in world coordinates.
+                # We must perform the collision check in the same coordinate space. Here, we'll use screen space.
+
+                # 1. Broad-phase check: Use the spike's bounding box, converted to screen coordinates.
+                spike_screen_bbox = pygame.Rect(spike.x - self.x_scroll, spike.y - self.y_scroll, spike.size, spike.size)
+                if not player_hitbox.colliderect(spike_screen_bbox):
+                    spike.color = (255, 0, 0)
+                    continue  # Not close, so no collision. Check the next spike.
+
+                # 2. Narrow-phase check: More precise triangle-to-rectangle collision.
+                screen_verts = [(vx - self.x_scroll, vy - self.y_scroll) for vx, vy in spike.vert]
+                lines = [(screen_verts[0], screen_verts[1]), (screen_verts[1], screen_verts[2]), (screen_verts[2], screen_verts[0])]
+                collided = any(player_hitbox.clipline(line) for line in lines) or player_hitbox.collidepoint(screen_verts[0])
+
+                if collided:
                     spike.color = (0, 255, 0)
                     return True
                 else:
                     spike.color = (255, 0, 0)
 
-        
-
         return False
 
-
-    def cube_collition(self, player):
-        """Returns (on_cube: bool, level: int or None, dead: bool)"""
-
-        
+    def cube_collition(self, player: pygame.Rect, velocity_y: float):
+        """
+        Returns:
+            on_cube (bool)  -> Player landed on top
+            level (int)     -> Y level to snap player to
+            dead (bool)     -> Player hit side or bottom
+        """
         start_x = self.objects["Start"].x
         end_x = self.objects["End"].x + self.objects["End"].width
-        
 
         for block in self.objects["Block"]:
             if start_x <= block.x <= end_x:
-                save_zone = pygame.Rect(block.x, block.y + block.height//2, block.width, block.height//2)
-                kill_zone = pygame.Rect(block.x, block.y, block.width, block.height//2)
-                if kill_zone.colliderect(player):
+                screen_rect = pygame.Rect(block.x - self.x_scroll, block.y - self.y_scroll, block.width, block.height)
+                kill_box = pygame.Rect(screen_rect.x, screen_rect.y + screen_rect.height//2, screen_rect.width, screen_rect.height//2)  # Green = kill box
+                standing = pygame.Rect(screen_rect.x, screen_rect.y, screen_rect.width, screen_rect.height//2) # Blue = top box for standing
+                if player.colliderect(kill_box):
                     return False, None, True
-                elif save_zone.colliderect(player):
-                    return True, block.y, False
-                
+                elif player.colliderect(standing) and velocity_y >= 0:
+                    return True, screen_rect.y, False
         return False, None, False
-
-
 
     # ===============================
     # Get the saved world data in a dict format for saving to JSON

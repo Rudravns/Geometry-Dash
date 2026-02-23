@@ -178,8 +178,8 @@ class Geometry_dash:
             self.velocity.y = 0
             self.player.y = (self.ground.y - self.player.h)
         
-        on_cube, level, dead = self.world.cube_collition(self.Player_rect)  # Check collision with the world using the rotated hitbox
-        #if dead: exit()  # If collided with a cube kill_zone, exit the game
+        on_cube, level, dead = self.world.cube_collition(self.player, self.velocity.y) # Check collision with the world using the rotated hitbox
+        if dead and not self.debug: exit()  # If collided with a cube kill_zone, exit the game
         if on_cube:
             self.jump = True
             self.rotation = 0
