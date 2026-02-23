@@ -2,7 +2,6 @@ import os
 from numpy import save
 import pygame
 from typing import *  # pyright: ignore[reportWildcardImportFromLibrary]
-
 import json
 
 
@@ -13,11 +12,19 @@ pygame.font.init()
 
 
 
+BASE_SIZE = (1200,800)
+map_key = {
+    0: "Empty",
+    1: "Spike",
+    2: "Cube",
+    3: "Start",
+    4: "End"
+}
+
 
 # ====================================================
 # Screen Funcs
 # ====================================================
-BASE_SIZE = (1200,800)
 def get_fullscreen():
     return pygame.display.Info().current_w, pygame.display.Info().current_h
 
@@ -77,7 +84,7 @@ def render_text(
 
     # Create font if none provided
     if font is None:
-        font = pygame.font.SysFont("Arial", size)
+        font = pygame.font.SysFont("Arial", int(scale(size)))
 
     # Convert color string to pygame.Color
     if isinstance(color, str):
@@ -90,7 +97,7 @@ def render_text(
 
     # Render text
     text_surface = font.render(str(text), True, color)
-    text_rect = text_surface.get_rect(topleft=position)
+    text_rect = text_surface.get_rect(topleft=scale(position))
 
     if draw:
         screen.blit(text_surface, text_rect)
@@ -117,7 +124,12 @@ def load_image(path: str) -> pygame.Surface:
 def load_font(path: str, size: int) -> pygame.font.Font:
     """Load a font from disk."""
     try:
-        return pygame.font.Font(path, size)
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        BASE_DIR = os.path.abspath(
+            os.path.join(script_dir, "asset", "Fonts")
+        )
+        
+        return pygame.font.Font(os.path.join(BASE_DIR, path), size)
     except IOError as e:
         raise FileNotFoundError(f"Unable to load font at '{path}': {e}") from e
 
@@ -125,9 +137,39 @@ def load_font(path: str, size: int) -> pygame.font.Font:
 def load_sound(path: str) -> pygame.mixer.Sound:
     """Load a sound from disk."""
     try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        BASE_DIR = os.path.abspath(
+            os.path.join(script_dir, "asset", "Sounds")
+        )
+        path = os.path.join(BASE_DIR, path)
+            
         return pygame.mixer.Sound(path)
     except pygame.error as e:
         raise FileNotFoundError(f"Unable to load sound at '{path}': {e}") from e
+
+def save_map(path: str, data: dict) -> None:
+    """Save a dictionary to a JSON file."""
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        BASE_DIR = os.path.abspath(
+            os.path.join(script_dir, "asset", "Map_levels")
+        )
+        with open(os.path.join(BASE_DIR, path), 'w') as f:
+            json.dump(data, f, indent=4)
+    except IOError as e:
+        raise IOError(f"Unable to save JSON at '{path}': {e}") from e
+    
+def load_map(path: str) -> dict:
+    """Load a JSON file into a dictionary."""
+    try:
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        BASE_DIR = os.path.abspath(
+            os.path.join(script_dir, "asset", "Map_levels")
+        )
+        with open(os.path.join(BASE_DIR, path), 'r') as f:
+            return json.load(f)
+    except IOError as e:
+        raise IOError(f"Unable to load JSON at '{path}': {e}") from e
 
 
 # =====================================================
@@ -136,8 +178,8 @@ def load_sound(path: str) -> pygame.mixer.Sound:
 class SpriteSheet:
     def __init__(self):
         #only init
-        self.sprite_sheet: pygame.Surface = None
-        self.sprite_sheet_rect: pygame.Rect = None
+        self.sprite_sheet = None
+        self.sprite_sheet_rect = None
         self.images: List[pygame.Surface] = []
         self.original_image: List[pygame.Surface] = []
         
@@ -150,7 +192,7 @@ class SpriteSheet:
         rects: List[pygame.Rect],
         scale: Tuple[int, int],
         alpha: int = 255
-    ) -> List[pygame.Surface]:
+    ) :
         self.sprite_sheet = load_image(path)
         self.sprite_sheet_rect = self.sprite_sheet.get_rect()
         images: List[pygame.Surface] = []
@@ -176,7 +218,7 @@ class SpriteSheet:
         start: Tuple[int, int] = (0, 0),
         scale: Tuple[int, int] | None = None,
         alpha: int = 255
-    ) -> List[pygame.Surface]:
+    ):
 
         self.sprite_sheet = load_image(path)
         self.sprite_sheet_rect = self.sprite_sheet.get_rect()
@@ -208,11 +250,34 @@ class SpriteSheet:
         self.images.append(image)
         self.original_image.append(image)
 
+#   all the init of @overload functions are in the SpriteSheet class, so that we can use it to rotate and scale images easily. We can also use it to extract images from a sprite sheet easily. The @overload functions are just for type hinting and do not have any implementation. The actual implementation is in the functions below them. This way we can have multiple ways to rotate and scale images without having to write multiple functions for each case.
     @overload
     def rotate_images(self, angle: int) -> None: ...
 
     @overload 
     def rotate_images(self, angle: int, index: int) -> None: ...
+
+    @overload
+    def rezize_images(self, size: Tuple[int, int]) -> None: ...
+
+    @overload
+    def rezize_images(self, size: Tuple[int, int], index: int) -> None: ...
+
+    #@overload
+    #def change_tint(self, tint:int) -> None: ...
+
+
+
+#   The actual implementation of the above functions. The index parameter is optional, if it is provided, only the image at that index will be rotated or resized, otherwise all images will be rotated or resized.
+
+    def rezize_images(self, size: Tuple[int, int], index: Optional[int] = None) -> None:
+        if index is not None:
+            self.images[index] = pygame.transform.scale(self.images[index], size)
+            return
+        else:
+            for i in range(len(self.images)):
+                self.images[i] = pygame.transform.scale(self.images[i], size)
+            return
 
     def rotate_images(self, angle: int, index: int | None = None) -> None:
         if index is not None:
@@ -223,6 +288,32 @@ class SpriteSheet:
                 self.images[i] = pygame.transform.rotate(self.images[i], angle)
             return
         
+
+
     # ---------------------------------------------------------
     def get_image(self, index: int) -> pygame.Surface:
         return self.images[index]
+    
+
+# timer class
+
+class Timer:
+    def __init__(self, duration: float):
+        self.duration = duration
+        self.start_time = None
+
+    def start(self):
+        self.start_time = pygame.time.get_ticks()
+
+    def has_elapsed(self) -> bool:
+        if self.start_time is None:
+            return False
+        elapsed_time = (pygame.time.get_ticks() - self.start_time) / 1000
+        return elapsed_time >= self.duration
+    
+    def reset(self):
+        self.start_time = None
+
+    def change_duration(self, new_duration: float):
+        self.duration = new_duration
+        self.reset()

@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/Gemotery_dash.iml" filepath="$PROJECT_DIR$/.idea/Gemotery_dash.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/Geometry_dash.iml" filepath="$PROJECT_DIR$/.idea/Geometry_dash.iml" />
     </modules>
   </component>
 </project>
