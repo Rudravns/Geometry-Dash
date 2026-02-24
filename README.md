@@ -30,15 +30,12 @@ placeholderr demo GIF or short video here when available:
 - Recommended: virtualenv or venv for an isolated environment
 - Typical dependency: pygame (or other framework used in the project)
 
-Install pygame (example):
+Install pygame:
 ```bash
 pip install pygame
 ```
 
-If a `requirements.txt` is included in the repository:
-```bash
-pip install -r requirements.txt
-```
+
 
 ---
 
@@ -70,14 +67,11 @@ pip install pygame
 
 ## Running the game
 
-Run the main script. Depending on the project layout it may be named `main.py`, `game.py`, or be available as a package entrypoint. Example:
+Run the main script. Example:
 ```bash
 python main.py
 ```
-If the repository uses a package structure:
-```bash
-python -m geometry_dash
-```
+
 
 If you see errors, check the repository root for a README or a `docs/` folder describing the exact entrypoint.
 
@@ -94,14 +88,14 @@ Controls can be changed in the game settings or the input handling module.
 
 ---
 
-## Project structure (suggested)
+## Project structure 
 
 - assets/ — images, audio, fonts
-- levels/ — level definitions (JSON, TXT, or Python)
+- levels/ — level definitions (JSON, or Python)
 - src/ or geometry_dash/ — main Python package
 - main.py — entrypoint
 
-Adjust based on the actual repository layout.
+
 
 ---
 
@@ -145,7 +139,7 @@ Free creative license
 
 ## Credits
 
-- Created by Rudravns and Kian
+- Created by Rudravns and [Kian](https://github.com/xgamerz2020-rgb)
 - Assets, music, and additional libraries should credit original creators where applicable.
 
 ---
