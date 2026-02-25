@@ -239,7 +239,11 @@ class Geometry_dash:
             self.player.y = (self.ground.y - self.player.h)
         
         on_cube, level, dead = self.world.cube_collition(self.player, self.velocity.y) # Check collision with the world using the rotated hitbox
-        if dead and not self.debug: exit()  # If collided with a cube kill_zone, exit the game
+        if dead and not self.debug: 
+            self.player.topleft = (200, 450)
+            self.world.reset()
+            self.velocity.y = 0
+            self.rotation = 0 # If collided with a cube kill_zone, exit the game
         if on_cube:
             self.rotation_to = self.rotation - self.rotation_to % 45 #Smooths the cube to an angle of 90 degrees
             self.jump = True #FIX UT GAME
