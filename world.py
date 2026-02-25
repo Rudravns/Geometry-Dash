@@ -4,8 +4,8 @@ import utility
 
 class Editor:
 
-    def __init__(self, level, editor, ground_y):
-        self.screen = pygame.display.get_surface()
+    def __init__(self, level, editor, ground_y, surface):
+        self.screen = surface
         self.movement_timer = utility.Timer(0.1)
         self.movement_timer.start()
 
@@ -39,6 +39,11 @@ class Editor:
         }
 
         #init textures
+        #
+        # assets HAS to be 16x16 tex size
+        #
+
+        #cube tex
         self.cube_tex = utility.SpriteSheet()
         self.cube_tex.extract_grid(path="Textures/Cube.png", crop_size=(16,16), scale=(self.grid, self.grid), alpha=255)
         self.cube_animation_timer = utility.Timer(0.1)
@@ -47,12 +52,14 @@ class Editor:
 
 
 
+
+
         self.get_world()
 
     # ===============================
     # EDITOR UPDATE
     # ===============================
-    def level_editor(self):
+    def level_editor(self, mouse_pos):
         keys = pygame.key.get_pressed()
         movement_type = [0,0,0,0]
 
@@ -74,25 +81,17 @@ class Editor:
                 self.y_scroll += self.grid
                 movement_type[1] = 1
 
-            if keys[pygame.K_1]:
-                self.place_type = 1
-            if keys[pygame.K_2]:
-                self.place_type = 2
-            if keys[pygame.K_3]:
-                self.place_type = 3
-            if keys[pygame.K_4]:
-                self.place_type = 4
-
 
             self.movement_timer.reset()
             self.movement_timer.start()
 
         # draw the grid and objects
         self.draw_grid_objects()
-        mouse_pos = self.draw_grid()
+        mouse_pos = self.draw_grid(mouse_pos)
         mouse_down = pygame.mouse.get_pressed()
-
-        if mouse_down[0]:
+        world_mos_pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.x_scroll, self.y_scroll)
+        world_grid_mos_pos = (math.floor(world_mos_pos.x // self.grid) * self.grid, math.floor(world_mos_pos.y // self.grid) * self.grid)
+        if mouse_down[0] and world_grid_mos_pos[1] < self.world_origin_y:  # left click to place and is above the ground
             world_x = mouse_pos[0] + self.x_scroll
             world_y = mouse_pos[1] + self.y_scroll
             grid_x = (world_x // self.grid) * self.grid
@@ -100,35 +99,73 @@ class Editor:
 
             new_rect = pygame.Rect(grid_x, grid_y, self.grid, self.grid)
 
-            if self.place_type == 1:  # Spike
-                # Prevent overlap with any block, spike, start, or end
-                if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
-                and not new_rect.colliderect(self.objects["Start"]) \
-                and not new_rect.colliderect(self.objects["End"]) \
-                and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
-                    self.objects["Spike"].append(Spike(grid_x, grid_y, self.grid))
+            match self.place_type:
+                case 1:  # Spike
+                    # Prevent overlap with any block, spike, start, or end
+                    if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
+                    and not new_rect.colliderect(self.objects["Start"]) \
+                    and not new_rect.colliderect(self.objects["End"]) \
+                    and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
 
-            elif self.place_type == 2:  # Block
-                # Prevent overlap with spikes, start, or end
-                if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
-                and not new_rect.colliderect(self.objects["Start"]) \
-                and not new_rect.colliderect(self.objects["End"]) \
-                and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
-                    self.objects["Block"].append(new_rect)
+                        sides = ["Pointing Up", "Pointing Right", "Pointing Down", "Pointing Left"]
+                        indices_to_check = []
+                        for i in range(4):
+                            if keys[pygame.K_1 + i]:
+                                indices_to_check.append(i)
+                        
+                        if not indices_to_check:
+                            indices_to_check = [0, 1, 2, 3]
 
-            elif self.place_type == 3:  # Start
-                # Move start only if not colliding with blocks or spikes
-                if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
-                and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
-                    self.objects["Start"].x = grid_x
-                    self.objects["Start"].y = grid_y
+                        for i in indices_to_check:
+                            side = sides[i]
+                            supported = False
+                            
+                            if side == "Pointing Up":
+                                check_rect = pygame.Rect(grid_x, grid_y + self.grid, self.grid, self.grid)
+                                if (grid_y + self.grid >= self.world_origin_y) or \
+                                   any(block.colliderect(check_rect) for block in self.objects["Block"]):
+                                    supported = True
+                            elif side == "Pointing Right":
+                                check_rect = pygame.Rect(grid_x - self.grid, grid_y, self.grid, self.grid)
+                                if any(block.colliderect(check_rect) for block in self.objects["Block"]):
+                                    supported = True
+                            elif side == "Pointing Down":
+                                check_rect = pygame.Rect(grid_x, grid_y - self.grid, self.grid, self.grid)
+                                if any(block.colliderect(check_rect) for block in self.objects["Block"]):
+                                    supported = True
+                            elif side == "Pointing Left":
+                                check_rect = pygame.Rect(grid_x + self.grid, grid_y, self.grid, self.grid)
+                                if any(block.colliderect(check_rect) for block in self.objects["Block"]):
+                                    supported = True
+                            
+                            if supported:
+                                self.objects["Spike"].append(Spike(grid_x, grid_y, self.grid, side=side))
+                                break
+                    
 
-            elif self.place_type == 4:  # End
-                # Move end only if not colliding with blocks or spikes
-                if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
-                and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
-                    self.objects["End"].x = grid_x
-                    self.objects["End"].y = grid_y
+                case 2:  # Block
+                    # Prevent overlap with spikes, start, or end
+                    if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
+                    and not new_rect.colliderect(self.objects["Start"]) \
+                    and not new_rect.colliderect(self.objects["End"]) \
+                    and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
+                        self.objects["Block"].append(new_rect)
+
+                case 3:  # Start
+                    # Move start only if not colliding with blocks or spikes
+                    if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
+                    and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
+                        self.objects["Start"].x = grid_x
+                        self.objects["Start"].y = grid_y
+
+                case 4:  # End
+                    # Move end only if not colliding with blocks or spikes
+                    if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
+                    and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
+                        self.objects["End"].x = grid_x
+                        self.objects["End"].y = grid_y
+                case _:
+                    raise ValueError("This block doesn't exist")
             
 
         elif mouse_down[2]:  # right click to remove
@@ -148,15 +185,52 @@ class Editor:
             for block in self.objects["Block"]:
                 if block.colliderect(click_rect):
                     self.objects["Block"].remove(block)
+
+                    # Check for unsupported spikes
+                    spikes_to_remove = []
+                    for spike in self.objects["Spike"]:
+                        supported = False
+                        if spike.type == "Pointing Up":
+                            check_rect = pygame.Rect(spike.x, spike.y + self.grid, self.grid, self.grid)
+                            if (spike.y + self.grid >= self.world_origin_y) or \
+                               any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                                supported = True
+                        elif spike.type == "Pointing Right":
+                            check_rect = pygame.Rect(spike.x - self.grid, spike.y, self.grid, self.grid)
+                            if any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                                supported = True
+                        elif spike.type == "Pointing Down":
+                            check_rect = pygame.Rect(spike.x, spike.y - self.grid, self.grid, self.grid)
+                            if any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                                supported = True
+                        elif spike.type == "Pointing Left":
+                            check_rect = pygame.Rect(spike.x + self.grid, spike.y, self.grid, self.grid)
+                            if any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                                supported = True
+                        
+                        if not supported:
+                            spikes_to_remove.append(spike)
+                    
+                    for s in spikes_to_remove:
+                        self.objects["Spike"].remove(s)
+
                     break
 
         self.save_to_list()
         return movement_type
 
+    def change_place_type(self, event: pygame.event.Event):
+        """use mouse wheel to change place type"""
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 4:  # Scroll up
+                self.place_type = (self.place_type % 4) + 1
+            elif event.button == 5:  # Scroll down
+                self.place_type = (self.place_type - 2) % 4 + 1
+
     # ===============================
     # DRAW GRID
     # ===============================
-    def draw_grid(self):
+    def draw_grid(self, mouse_pos):
         width, height = self.screen.get_size()
         start_x = -self.x_scroll % self.grid
         for x in range(int(start_x) - self.grid, width + self.grid, self.grid):
@@ -167,7 +241,7 @@ class Editor:
             pygame.draw.line(self.screen, self.grid_color, (0, y), (width, y))
 
         # Highlight tile
-        mouse_x, mouse_y = pygame.mouse.get_pos()
+        mouse_x, mouse_y = mouse_pos
         world_x = mouse_x + self.x_scroll
         world_y = mouse_y + self.y_scroll
         grid_x = (world_x // self.grid) * self.grid - self.x_scroll
@@ -182,8 +256,8 @@ class Editor:
 
         # Draw selected object
         utility.render_text(f"Selected: {utility.map_key[self.place_type]}",
-                            (((width/2)-utility.scale(100, round_values= True)), utility.scale(10, round_values=True)), 
-                            utility.scale(50, round_values= True))  # pyright: ignore[reportArgumentType] #
+                            (((width/2)-utility.scale(100, round_values= True)), utility.scale(10, round_values=True)),
+                            utility.scale(50, round_values= True), surface=self.screen)  # pyright: ignore[reportArgumentType] #
         return (grid_x, grid_y)
 
     # ===============================
@@ -199,7 +273,7 @@ class Editor:
                 self.cube_animation_timer.start()
 
             screen_rect = pygame.Rect(block.x - self.x_scroll, block.y - self.y_scroll, block.width, block.height)
-            self.screen.blit(self.cube_tex.get_image(self.cube_img).convert_alpha(), screen_rect)  # pyright: ignore[reportArgumentType]
+            self.screen.blit(self.cube_tex.get_image(self.cube_img), screen_rect)  # pyright: ignore[reportArgumentType]
 
         pygame.draw.rect(self.screen, (255, 255, 0), pygame.Rect(self.objects["Start"].x - self.x_scroll, self.objects["Start"].y - self.y_scroll, self.objects["Start"].width, self.objects["Start"].height)) # pyright: ignore[reportAttributeAccessIssue]
         pygame.draw.rect(self.screen, (255, 0, 255), pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height)) # pyright: ignore[reportAttributeAccessIssue]
@@ -215,9 +289,15 @@ class Editor:
                 world_y = world_row * self.grid
 
                 if block == 1:
-                    self.objects["Spike"].append(Spike(world_x, world_y, self.grid))
+                    self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Up"))
                 elif block == 2:
                     self.objects["Block"].append(pygame.Rect(world_x, world_y, self.grid, self.grid))
+                elif block == 5:
+                    self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Right"))
+                elif block == 6:
+                    self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Down"))
+                elif block == 7:
+                    self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Left"))
 
     # ===============================
     # SAVE WORLD TO LIST (DYNAMIC BOUNDS)
@@ -240,10 +320,10 @@ class Editor:
 
 
         # 2. Convert to grid coordinates
-        grid_min_x = min_x // self.grid
-        grid_max_x = max_x // self.grid
-        grid_min_y = min_y // self.grid
-        grid_max_y = max_y // self.grid
+        grid_min_x = int(min_x // self.grid)
+        grid_max_x = int(max_x // self.grid)
+        grid_min_y = int(min_y // self.grid)
+        grid_max_y = int(max_y // self.grid)
 
         width = grid_max_x - grid_min_x + 1
         height = grid_max_y - grid_min_y + 1
@@ -253,14 +333,19 @@ class Editor:
 
         # 4. Place spikes
         for spike in spikes:
-            gx = spike.x // self.grid - grid_min_x
-            gy = spike.y // self.grid - grid_min_y
-            new_level[height - 1 - gy][gx] = 1
+            gx = int(spike.x // self.grid) - grid_min_x
+            gy = int(spike.y // self.grid) - grid_min_y
+            
+            val = 1
+            if spike.type == "Pointing Right": val = 5
+            elif spike.type == "Pointing Down": val = 6
+            elif spike.type == "Pointing Left": val = 7
+            new_level[height - 1 - gy][gx] = val
 
         # 5. Place blocks
         for block in blocks:
-            gx = block.x // self.grid - grid_min_x
-            gy = block.y // self.grid - grid_min_y
+            gx = int(block.x // self.grid) - grid_min_x
+            gy = int(block.y // self.grid) - grid_min_y
             new_level[height - 1 - gy][gx] = 2
 
         # 6. Set main level list
@@ -291,7 +376,7 @@ class Editor:
                     self.cube_animation_timer.reset()
                     self.cube_animation_timer.start()
                 screen_rect = pygame.Rect(block.x - self.x_scroll, block.y - self.y_scroll, block.width, block.height)
-                self.screen.blit(self.cube_tex.get_image(self.cube_img).convert_alpha(), screen_rect)  # pyright: ignore[reportArgumentType]
+                self.screen.blit(self.cube_tex.get_image(self.cube_img), screen_rect)  # pyright: ignore[reportArgumentType]
 
                 if debug:
                     # Draw the Side and bottom hitbox, the kill hitbox, and then the top hitbox for standing on it
@@ -360,20 +445,9 @@ class Editor:
 
         objects_data = data.get("objects", {})
 
-        # Load Spikes
+        # Clear objects (they will be rebuilt from the map via get_world)
         self.objects["Spike"] = []
-        for spike_data in objects_data.get("Spike", []):
-            x = spike_data.get("x", 0)
-            y = spike_data.get("y", 0)
-            size = spike_data.get("size", self.grid)
-            self.objects["Spike"].append(Spike(x, y, size))
-
-        # Load Blocks
         self.objects["Block"] = []
-        for block_data in objects_data.get("Block", []):
-            if len(block_data) == 4:
-                rect = pygame.Rect(block_data[0], block_data[1], block_data[2], block_data[3])
-                self.objects["Block"].append(rect)
 
         # Load Start & End
         start_data = objects_data.get("Start", [0, self.world_origin_y, self.grid, self.grid])
@@ -443,32 +517,81 @@ class Editor:
 
 class Spike:
 
-    def __init__(self, x, y, size):
+    def __init__(self, x, y, size, side="Pointing Up"):
+        """
+        x, y: top-left corner of the spike's bounding box
+        size: width and height of the spike (assumed to be square)
+        side: "Pointing Up", "Pointing Down", "Pointing Left", "Pointing Right"
+        """
         self.x = x
         self.y = y
         self.size = size
+        self.type = side
         self.color = (255, 0, 0)
+        
+        # spike tex
+        self.spike_tex = utility.SpriteSheet()
+        self.spike_tex.extract_grid(path="Textures/Spike.png", crop_size=(16, 16), scale=(size, size),
+                                    alpha=255)
+        self.spike_animation_timer = utility.Timer(0.04)
+        self.spike_animation_timer.start()
+        self.spike_img = 0
+
         self.update_geometry()
 
     def update_geometry(self):
-        self.vert = [
-            [self.x + self.size // 2, self.y],
-            [self.x, self.y + self.size],
-            [self.x + self.size, self.y + self.size],
-        ]
+        match self.type:
+            case "Pointing Up":
+                self.vert = [
+                    [self.x + self.size // 2, self.y],
+                    [self.x, self.y + self.size],
+                    [self.x + self.size, self.y + self.size],
+                ]
+            case "Pointing Down":
+                self.vert = [
+                    [self.x, self.y],
+                    [self.x + self.size // 2, self.y + self.size],
+                    [self.x + self.size, self.y],
+                   
+                ]
+                self.spike_tex.rotate_images(180)
+            case "Pointing Left":
+                self.vert = [
+                    [self.x, self.y + self.size // 2],
+                    [self.x, self.y],
+                    [self.x, self.y + self.size],
+                ]
+                self.spike_tex.rotate_images(90)
+            case "Pointing Right":
+                self.vert = [
+                    [self.x + self.size, self.y + self.size // 2],
+                    [self.x + self.size, self.y],
+                    [self.x + self.size, self.y + self.size],
+                ]
+                self.spike_tex.rotate_images(270)
+            case _:
+                raise ValueError("This side doesn't exist")
         self.collision_rect = self.create_collision_rect()
 
     def create_collision_rect(self):
         p1, p2, p3 = self.vert
-        midpoint1 = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
-        midpoint2 = ((p1[0] + p3[0]) // 2, (p1[1] + p3[1]) // 2)
-        distance1 = abs(midpoint1[0] - midpoint2[0])
-        distance2 = abs(midpoint1[1] - p3[1])
-        return pygame.Rect(midpoint1[0], midpoint1[1], distance1, distance2)
+        mp1 = ((p1[0] + p2[0]) // 2, (p1[1] + p2[1]) // 2)
+        mp2 = ((p1[0] + p3[0]) // 2, (p1[1] + p3[1]) // 2)
+        d1 = abs(mp1[0] - mp2[0])
+        d2 = abs(mp1[1] - p3[1])
+        return pygame.Rect(mp1[0], mp1[1], d1, d2)
 
     def draw(self, screen, x_scroll, y_scroll, debug):
         screen_verts = [(vx - x_scroll, vy - y_scroll) for vx, vy in self.vert]
-        pygame.draw.polygon(screen, (255, 255, 255), screen_verts)
+
+
+        screen.blit(self.spike_tex.get_image(self.spike_img), (self.x - x_scroll, self.y - y_scroll))
+        #pygame.draw.polygon(screen, (255, 255, 255), screen_verts)
+        if self.spike_animation_timer.has_elapsed():
+            self.spike_img = (self.spike_img + 1) % len(self.spike_tex.images)
+            self.spike_animation_timer.reset()
+            self.spike_animation_timer.start()
+
         if debug:
             pygame.draw.circle(screen, (255, 0, 0), screen_verts[0], 3)
             pygame.draw.circle(screen, (0, 255, 0), screen_verts[1], 3)
@@ -477,6 +600,7 @@ class Spike:
             pygame.draw.rect(screen, self.color, debug_rect, 1)
 
     def check_collition(self, hitbox: pygame.Rect, rect_to_rect: bool = False) -> bool:
+        """
         if rect_to_rect:
             return hitbox.colliderect(self.collision_rect)
         spike_rect = pygame.Rect(self.x, self.y, self.size, self.size)
@@ -487,6 +611,8 @@ class Spike:
             if hitbox.clipline(start, end):
                 return True
         return hitbox.collidepoint(self.vert[0])
+        """
+        return self.collision_rect.colliderect(hitbox)
 
     def __str__(self):
-        return f"Spike: {self.vert}, Collision Rect: {self.collision_rect}"
+        return f"Spike: {self.vert}, Collision Rect: {self.collision_rect}, Type: {self.type}"
