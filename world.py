@@ -50,6 +50,12 @@ class Editor:
         self.cube_animation_timer.start()
         self.cube_img = 0
 
+        #flag tex
+        self.flag_tex = utility.SpriteSheet()
+        self.flag_tex.extract_grid(path="Textures/flag.png", crop_size=(16,16),  scale=(self.grid, self.grid), alpha=255)
+        self.flag_animation_timer = utility.Timer(0.3)
+        self.flag_animation_timer.start()
+        self.flag_img = 0
 
 
 
@@ -276,12 +282,17 @@ class Editor:
             self.screen.blit(self.cube_tex.get_image(self.cube_img), screen_rect)  # pyright: ignore[reportArgumentType]
 
         pygame.draw.rect(self.screen, (255, 255, 0), pygame.Rect(self.objects["Start"].x - self.x_scroll, self.objects["Start"].y - self.y_scroll, self.objects["Start"].width, self.objects["Start"].height)) # pyright: ignore[reportAttributeAccessIssue]
-        pygame.draw.rect(self.screen, (255, 0, 255), pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height)) # pyright: ignore[reportAttributeAccessIssue]
+
+        if self.flag_animation_timer.has_elapsed():
+            self.flag_animation_timer.reset()
+            self.flag_animation_timer.start()
+            self.flag_img = (self.flag_img + 1) % len(self.flag_tex.images)
+
+        self.screen.blit(self.flag_tex.get_image( self.flag_img), pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height)) # pyright: ignore[reportAttributeAccessIssue]
     # ===============================
     # LOAD WORLD 
     # ===============================
     def get_world(self):
-        total_rows = len(self.level)
         for y, row in enumerate(reversed(self.level)):
             for x, block in enumerate(row):
                 world_row = 11 - y
@@ -363,6 +374,15 @@ class Editor:
         start_x = self.objects["Start"].x
         end_x = self.objects["End"].x + self.objects["End"].width
 
+        #update flag tex
+        if self.flag_animation_timer.has_elapsed():
+            self.flag_animation_timer.reset()
+            self.flag_animation_timer.start()
+            self.flag_img = (self.flag_img + 1) % len(self.flag_tex.images)
+
+        self.screen.blit(self.flag_tex.get_image(0),
+                         pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll,
+                                     self.objects["End"].width, self.objects["End"].height))
         # Draw spikes within start-end bounds
         for spike in self.objects["Spike"]:
             if start_x <= spike.x <= end_x:
@@ -475,6 +495,14 @@ class Editor:
     def set_level(self, level):
         self.level = level
         self.reset()  # Reset camera and objects to reflect new level
+
+    def end(self, player: pygame.Rect ):
+
+        if pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height).colliderect(player):
+            return True
+        return False
+
+
 
 
     def __dict__(self):
