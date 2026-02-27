@@ -47,17 +47,11 @@ def scale(
         round_values: bool = False
 ) -> int | float | tuple[int | float, ...]:
     """Scale a value or tuple of values based on the current fullscreen resolution."""
-    screen_w, screen_h = get_fullscreen()
-    base_w, base_h = BASE_SIZE  # Base resolution for scaling
-
-    scale_factor = min(screen_w / base_w, screen_h / base_h)
-
     if isinstance(value, (int, float)):
-        scaled_value = value * scale_factor
-        return round(scaled_value) if round_values else scaled_value
+        return round(value) if round_values else value
 
     if isinstance(value, tuple):
-        return tuple(scale(v, round_values=round_values) for v in value)
+        return tuple(round(v) if round_values else v for v in value)
 
     raise TypeError("Value must be an int, float, or tuple of int/float.")
 
@@ -65,6 +59,7 @@ def scale(
 # =====================================================
 # Text rendering
 # =====================================================
+_font_cache = {}
 def render_text(
         text: str,
         position,
@@ -74,29 +69,37 @@ def render_text(
         bold: bool = False,
         italic: bool = False,
         underline: bool = False,
-        draw: bool = True
+        draw: bool = True,
+        surface: Optional[pygame.Surface] = None
 ) -> Tuple[pygame.Surface, pygame.Rect]:
     """Render text to the active display surface."""
 
-    screen = pygame.display.get_surface()
-    if screen is None:
+    if surface:
+        screen = surface
+    else:
+        screen = pygame.display.get_surface()
+
+    if screen is None and draw:
         raise RuntimeError("Display surface not initialized. Call pygame.display.set_mode().")
 
     # Create font if none provided
     if font is None:
-        font = pygame.font.SysFont("Arial", int(scale(size)))
+        key = ("Arial", int(scale(size)))
+        if key not in _font_cache:
+            _font_cache[key] = pygame.font.SysFont("Arial", int(scale(size)))
+        font = _font_cache[key]
 
     # Convert color string to pygame.Color
     if isinstance(color, str):
         color = pygame.Color(color)  # type: ignore
 
     # Apply font styles
-    font.set_bold(bold)
-    font.set_italic(italic)
-    font.set_underline(underline)
+    font.set_bold(bold) # pyright: ignore[reportOptionalMemberAccess]
+    font.set_italic(italic) # pyright: ignore[reportOptionalMemberAccess]
+    font.set_underline(underline)   # pyright: ignore[reportOptionalMemberAccess]
 
     # Render text
-    text_surface = font.render(str(text), True, color)
+    text_surface = font.render(str(text), True, color) # pyright: ignore[reportOptionalMemberAccess]
     text_rect = text_surface.get_rect(topleft=scale(position))
 
     if draw:
@@ -134,7 +137,7 @@ def load_font(path: str, size: int) -> pygame.font.Font:
         raise FileNotFoundError(f"Unable to load font at '{path}': {e}") from e
 
 
-def load_sound(path: str) -> pygame.mixer.Sound:
+def load_sound(path: str,) -> pygame.mixer.Sound:
     """Load a sound from disk."""
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -142,8 +145,17 @@ def load_sound(path: str) -> pygame.mixer.Sound:
             os.path.join(script_dir, "asset", "Sounds")
         )
         path = os.path.join(BASE_DIR, path)
-            
-        return pygame.mixer.Sound(path)
+
+        path_type = path.split("/")[-1]
+        match path_type:
+            case "SFX":
+                # SFX can be saved as a Sound object
+                return pygame.mixer.Sound(path)
+            case "Music":
+                # Music must be saved as a PATH string
+                return path
+            case _:
+                raise ValueError(f"Invalid path: {path}")
     except pygame.error as e:
         raise FileNotFoundError(f"Unable to load sound at '{path}': {e}") from e
 
@@ -191,9 +203,13 @@ class SpriteSheet:
         path: str,
         rects: List[pygame.Rect],
         scale: Tuple[int, int],
-        alpha: int = 255
+        alpha: int = 255,
+        convert_alpha: bool = True
     ) :
         self.sprite_sheet = load_image(path)
+        if convert_alpha:
+            self.sprite_sheet = self.sprite_sheet.convert_alpha()
+       
         self.sprite_sheet_rect = self.sprite_sheet.get_rect()
         images: List[pygame.Surface] = []
 
@@ -217,10 +233,13 @@ class SpriteSheet:
         crop_size: Tuple[int, int],
         start: Tuple[int, int] = (0, 0),
         scale: Tuple[int, int] | None = None,
-        alpha: int = 255
+        alpha: int = 255,
+        convert_alpha: bool = True
     ):
 
         self.sprite_sheet = load_image(path)
+        if convert_alpha:
+            self.sprite_sheet = self.sprite_sheet.convert_alpha()
         self.sprite_sheet_rect = self.sprite_sheet.get_rect()
         images: List[pygame.Surface] = []
         
@@ -243,9 +262,12 @@ class SpriteSheet:
 
         self.images.extend(images)
 
-    def extract_single_image(self, path: str, scale: Tuple[int, int], alpha: int = 255):
+    def extract_single_image(self, path: str, scale: Tuple[int, int], alpha: int = 255, convert_alpha: bool = True):
         image = load_image(path)
         image = pygame.transform.scale(image, scale)
+        if convert_alpha:
+            image = image.convert_alpha()
+        else:   image = image.convert()
         image.set_alpha(alpha)
         self.images.append(image)
         self.original_image.append(image)
@@ -262,10 +284,6 @@ class SpriteSheet:
 
     @overload
     def rezize_images(self, size: Tuple[int, int], index: int) -> None: ...
-
-    #@overload
-    #def change_tint(self, tint:int) -> None: ...
-
 
 
 #   The actual implementation of the above functions. The index parameter is optional, if it is provided, only the image at that index will be rotated or resized, otherwise all images will be rotated or resized.
