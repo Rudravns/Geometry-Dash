@@ -6,12 +6,12 @@ pygame.mixer.init()
 class Music:
     def __init__(self, song):
         self.song = song
-        self.main_pathway = "asset/Sounds"
+        self.main_mpath = "asset/Sounds/Music"
 
         self.musics:dict = {
-            "Level 1" : f"{self.main_pathway}/Music/level1.wav",
-            "Level 2" : f"{self.main_pathway}/Music/level2.wav",
-            "Level 3": f"{self.main_pathway}/Music/level3.wav"
+            "Level 1" : f"{self.main_mpath}/level1.mp3",
+            "Level 2" : f"{self.main_mpath}/level2.mp3",
+            "Level 3" : f"{self.main_mpath}/level3.mp3"
         } #write path in here for each song
 
         self.music_playing:list = [False, False, False] #one for each song in the song list
@@ -19,8 +19,14 @@ class Music:
     def music_controls(self, start_pos = 0):
         self.music_playing[self.song] = not self.music_playing[self.song]
         file = self.musics[f"Level {self.song}"]
-        file.set_volume(100)
-        if self.music_playing[start_pos]:
-            file.play(loops=0, start=start_pos)
-        else:
-            file.stop()
+
+        pygame.mixer.music.load(file)
+        if self.music_playing[self.song]: pygame.mixer.music.play()
+        else: pygame.mixer.music.stop()
+
+    def get_frequency(self):
+        return pygame.mixer.music.get_volume()
+
+if __name__ == "__main__":
+    p = Music(1)
+    p.music_controls()

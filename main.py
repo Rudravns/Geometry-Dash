@@ -143,6 +143,7 @@ class Geometry_dash:
                     if event.key == pygame.K_F4:
                         self.Text_debug = not self.Text_debug
                     if event.key == pygame.K_F2:
+                        self.sfx.music_controls()
                         self.world.editor = not self.world.editor
                         self.world.reset()  # Reset camera scroll when toggling editor mode
                         self.player.topleft = (200, 450)  # Reset player position when toggling editor mode
@@ -251,6 +252,9 @@ class Geometry_dash:
             utility.render_text(
                 f"Level Length {self.world.level_dist} and Level completion {self.world.level_completion}",
                 (10, 260), 20, surface=self.display)
+            utility.render_text(
+                f"Frequency: {self.sfx.get_frequency()}", (10, 280), 20, surface=self.display
+            )
 
             pygame.draw.rect(self.display, (255, 0, 0), self.player, 2)
             if not self.world.editor: pygame.draw.rect(self.display, (255, 0, 255), self.Player_rect, 2)
