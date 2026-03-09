@@ -157,6 +157,9 @@ class Geometry_dash:
                         data = self.world.__dict__()
                         utility.save_map("Trial.json", data)
 
+                    if event.key == pygame.K_p and self.world.editor:
+                        pass
+
                     if event.key == pygame.K_F11:
                         if utility.get_fullscreen() == self.FULL_SCREEN_SIZE:
                             self.screen = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
