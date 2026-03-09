@@ -137,7 +137,7 @@ def load_font(path: str, size: int) -> pygame.font.Font:
         raise FileNotFoundError(f"Unable to load font at '{path}': {e}") from e
 
 
-def load_sound(path: str,) -> pygame.mixer.Sound:
+def load_sound(path: str) -> pygame.mixer.Sound:
     """Load a sound from disk."""
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -156,6 +156,8 @@ def load_sound(path: str,) -> pygame.mixer.Sound:
                 return path
             case _:
                 raise ValueError(f"Invalid path: {path}")
+            
+        return pygame.mixer.Sound(path)
     except pygame.error as e:
         raise FileNotFoundError(f"Unable to load sound at '{path}': {e}") from e
 

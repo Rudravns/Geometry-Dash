@@ -9,7 +9,6 @@ import math
 """
 var = utility.load_sound("Music/file")"""
 
-
 class Geometry_dash:
 
     def __init__(self, map_name="Trial.json"):
@@ -116,7 +115,6 @@ class Geometry_dash:
                                                                                               -self.world.grid)  # down
                 if move_type[2]: self.player.move_ip(self.world.grid, 0)  # left
                 if move_type[3]: self.player.move_ip(-self.world.grid, 0)  # right
-
 
             collide = self.world.update_world(
                 self.world.grid * 10 * self.dt, self.player,
@@ -243,7 +241,11 @@ class Geometry_dash:
                 (10, 90), 20, surface=self.display)
             utility.render_text(f"Image Size: {self.player_imgs.get_image(0).get_size()}", (10, 50), 20,
                                 surface=self.display)
+<<<<<<< HEAD
             utility.render_text(f"Rotation: {round(self.rotation, 3)}", (10, 110), 20, rot_color, surface=self.display)
+=======
+            utility.render_text(f"Rotation: {round(self.rotation, 3)}", (10, 110), 20, rot_color, surface=self.display) # pyright: ignore[reportArgumentType]
+>>>>>>> 6c6a0aafbdb7015fd44087b7be89272e5c9c78d4
             utility.render_text(f"Rotation_To: {self.rotation_to}", (10, 130), 20, surface=self.display)
             utility.render_text(f"Rotation_Velocity: {round(self.rotation_velocity, 3)}", (10, 150), 20, surface=self.display)
             utility.render_text(f"World Scroll {self.world.x_scroll, self.world.y_scroll}", (10, 170), 20,

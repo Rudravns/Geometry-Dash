@@ -313,6 +313,7 @@ class Editor:
                     self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Left"))
         # get the distance from the start to te flag
         self.level_dist = (self.objects["Start"].x) + (self.objects["End"].x) + 400
+
     # ===============================
     # SAVE WORLD TO LIST (DYNAMIC BOUNDS)
     # ===============================
@@ -377,6 +378,7 @@ class Editor:
         start_x = self.objects["Start"].x
         end_x = self.objects["End"].x + self.objects["End"].width
         self.level_completion = round((self.x_scroll/(self.level_dist)) * 100) + 15
+
         #update flag tex
         if self.flag_animation_timer.has_elapsed():
             self.flag_animation_timer.reset()
