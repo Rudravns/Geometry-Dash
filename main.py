@@ -156,7 +156,7 @@ class Geometry_dash:
                         utility.save_map("Trial.json", data)
 
                     if event.key == pygame.K_p and self.world.editor:
-                        pass
+                        self.sfx.music_controls()
 
                     if event.key == pygame.K_F11:
                         if utility.get_fullscreen() == self.FULL_SCREEN_SIZE:
@@ -192,6 +192,7 @@ class Geometry_dash:
         # 2. World (blocks and spikes)
         # 3. Ground (drawn before player so player can go behind it)
         # 4. Player (drawn after ground so it can go behind it)
+        # 5. Music playback (only shows if level editor is enabled and music is playing)
 
         # Update background tint
 
@@ -228,6 +229,10 @@ class Geometry_dash:
 
         # draw plaeyer
         self.display.blit(self.player_imgs.get_image(0), self.Player_rect if not self.world.editor else self.player)
+
+        # draw music related stuff if music is playing and editor is enabled
+        if self.world.level_editor and self.sfx.music_playing[self.sfx.song]:
+            self.sfx.draw(self.display, self.world.x_scroll)
 
         # draw UI and debug info
         if self.debug:
