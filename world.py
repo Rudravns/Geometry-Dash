@@ -12,7 +12,7 @@ class Editor:
         # Editor state
         self.editor = editor
         self.editor_window = True
-        self.place_type = 1  # 1 for spike, 2 for block
+        self.place_type = 1  # 1 for spike, 2 for block, 3 for start, 4 for end
 
         # Grid
         self.grid = 40
@@ -58,6 +58,17 @@ class Editor:
         self.flag_animation_timer = utility.Timer(0.3)
         self.flag_animation_timer.start()
         self.flag_img = 0
+
+        # spike tex
+        self.spike_tex = utility.SpriteSheet()
+        self.spike_tex.extract_grid(path="Textures/Spike.png", crop_size=(16, 16), scale=(self.grid, self.grid),alpha=255)
+        self.spike_animation_timer = utility.Timer(0.04)
+        self.spike_animation_timer.start()
+        self.spike_img = 0
+
+        #missing tex
+        self.miss_tex = utility.SpriteSheet()
+        self.miss_tex.extract_grid(path="Textures/missing.png", crop_size=(16, 16), scale=(self.grid, self.grid), alpha=255)
 
 
 
@@ -255,6 +266,36 @@ class Editor:
         grid_x = (world_x // self.grid) * self.grid - self.x_scroll
         grid_y = (world_y // self.grid) * self.grid - self.y_scroll
         pygame.draw.rect(self.screen, (120, 170, 255), pygame.Rect(grid_x, grid_y, self.grid, self.grid), 2)
+        # Show transparent object preview
+        skip = False
+        match self.place_type:
+            case 1: # Spike
+                if self.spike_animation_timer.has_elapsed():
+                    self.spike_img = (self.spike_img + 1) % len(self.spike_tex.images)
+                    self.spike_animation_timer.reset()
+                    self.spike_animation_timer.start()
+                image = self.spike_tex.get_image(self.spike_img).convert_alpha()
+            case 2: # Cube
+                if self.cube_animation_timer.has_elapsed():
+                    self.cube_img = (self.cube_img + 1) % len(self.cube_tex.images)
+                    self.cube_animation_timer.reset()
+                    self.cube_animation_timer.start()
+                image = self.cube_tex.get_image(self.cube_img).convert_alpha()
+            case 3: # Start
+                skip = True
+                image = pygame.Surface((self.grid, self.grid), pygame.SRCALPHA)
+                pygame.draw.rect(image, (255, 255, 0, 128), (0, 0, self.grid, self.grid))
+            case 4: # End
+                if self.flag_animation_timer.has_elapsed():
+                    self.flag_img = (self.flag_img + 1) % len(self.flag_tex.images)
+                    self.flag_animation_timer.reset()
+                    self.flag_animation_timer.start()
+                image = self.flag_tex.get_image(self.flag_img).convert_alpha()
+            case _: # Missing
+                image = self.miss_tex.get_image(0).convert_alpha()
+        if not skip:
+            image.set_alpha(128) #50% transparency
+        self.screen.blit(image, (grid_x, grid_y))  # pyright: ignore[reportArgumentType] #
 
         # Origin lines
         origin_screen_x = -self.x_scroll
@@ -491,7 +532,7 @@ class Editor:
     # RESET
     # ===============================
     def reset(self):
-        self.x_scroll = -self.screen.get_width() // 2
+        self.x_scroll = -self.screen.get_width() // 4 - 100
         self.y_scroll = 0
         self.objects["Spike"] = []
         self.objects["Block"] = []

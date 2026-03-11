@@ -24,8 +24,10 @@ class Music:
         if self.music_playing[self.song]: pygame.mixer.music.play()
         else: pygame.mixer.music.stop()
 
-    def draw(self, screen, xscroll):
-        linex = pygame.mixer.music.get_pos() / 5
+    def draw(self, screen, speed, xscroll):
+        os.system("cls" if os.name == "nt" else "clear")
+        print(speed)
+        linex = pygame.mixer.music.get_pos() / speed
         pygame.draw.line(screen, (255, 0, 0), (linex - xscroll, 0), (linex - xscroll, screen.get_height()), 2)
 
     def get_frequency(self):

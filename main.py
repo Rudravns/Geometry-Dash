@@ -144,10 +144,10 @@ class Geometry_dash:
                         self.sfx.music_controls()
                         self.world.editor = not self.world.editor
                         self.world.reset()  # Reset camera scroll when toggling editor mode
-                        self.player.topleft = (200, 450)  # Reset player position when toggling editor mode
+                        self.player.topleft = (400, 450)  # Reset player position when toggling editor mode
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
                     if event.key == pygame.K_r and (event.mod & pygame.KMOD_CTRL):
-                        self.player.topleft = (200, 450)  # Reset player position when toggling editor mode
+                        self.player.topleft = (400, 450)  # Reset player position when toggling editor mode
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
                         self.world.set_level([[3, 0, 0, 4]])
 
@@ -232,7 +232,7 @@ class Geometry_dash:
 
         # draw music related stuff if music is playing and editor is enabled
         if self.world.level_editor and self.sfx.music_playing[self.sfx.song]:
-            self.sfx.draw(self.display, self.world.x_scroll)
+            self.sfx.draw(self.display, self.speed / 100 + self.dt, self.world.x_scroll)
 
         # draw UI and debug info
         if self.debug:
