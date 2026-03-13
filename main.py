@@ -75,6 +75,8 @@ class Geometry_dash:
 
         self.debug = True  # for hitbox
         self.Text_debug = False  # for console logs
+        self.simulate = False  # for simulating the player in the editor mode without actually controlling it
+        self.pos = pygame.Vector2(0, 0)  # for simulating the player in the editor mode without actually controlling it
 
     def run(self):
         while True:
@@ -122,6 +124,9 @@ class Geometry_dash:
 
             if collide and not self.debug:
                 self.death()
+            
+            if self.simulate:
+                pass
 
             # event handling
             for event in pygame.event.get():
@@ -140,6 +145,8 @@ class Geometry_dash:
                         self.debug = not self.debug
                     if event.key == pygame.K_F4:
                         self.Text_debug = not self.Text_debug
+                    if event.key == pygame.K_F5 and self.world.editor:
+                        self.simulate = not self.simulate
                     if event.key == pygame.K_F2:
                         self.sfx.music_controls()
                         self.world.editor = not self.world.editor
@@ -231,8 +238,7 @@ class Geometry_dash:
         self.display.blit(self.player_imgs.get_image(0), self.Player_rect if not self.world.editor else self.player)
 
         # draw music related stuff if music is playing and editor is enabled
-        if self.world.level_editor and self.sfx.music_playing[self.sfx.song]:
-            self.sfx.draw(self.display, self.speed / 100 + self.dt, self.world.x_scroll)
+        self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll)
 
         # draw UI and debug info
         if self.debug:
@@ -332,6 +338,10 @@ class Geometry_dash:
         x = self.player.x - (shift.w - self.player.w) / 2
         y = self.player.y - (shift.h - self.player.h) / 2
         self.Player_rect = pygame.Rect(x, y, shift.w, shift.h)
+
+    def simulate_player(self, speed):
+        # Simulating the player for debuging
+        pass
 
     def death(self):
         self.player.topleft = (200, 450)

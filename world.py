@@ -415,6 +415,7 @@ class Editor:
             return False
 
         self.x_scroll += speed
+        print(speed)
 
         start_x = self.objects["Start"].x
         end_x = self.objects["End"].x + self.objects["End"].width

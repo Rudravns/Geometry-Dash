@@ -7,6 +7,7 @@ class Music:
     def __init__(self, song):
         self.song = song
         self.main_mpath = "asset/Sounds/Music"
+        self.speed = 0
 
         self.musics:dict = {
             "Level 1" : f"{self.main_mpath}/level1.mp3",
@@ -25,10 +26,14 @@ class Music:
         else: pygame.mixer.music.stop()
 
     def draw(self, screen, speed, xscroll):
+        if not self.music_playing[self.song]: return False
+
+        linex = (pygame.mixer.music.get_pos() + speed) / 10 - xscroll
+
         os.system("cls" if os.name == "nt" else "clear")
-        print(speed)
-        linex = pygame.mixer.music.get_pos() / speed
-        pygame.draw.line(screen, (255, 0, 0), (linex - xscroll, 0), (linex - xscroll, screen.get_height()), 2)
+        print(round(linex, 2))
+        
+        pygame.draw.line(screen, (255, 0, 0), (linex, 0), (linex, screen.get_height()), 2)
 
     def get_frequency(self):
         return pygame.mixer.music.get_volume()
