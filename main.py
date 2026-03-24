@@ -7,7 +7,8 @@ import utility
 import math
 
 """
-var = utility.load_sound("Music/file")"""
+var = utility.load_sound("Music/file")
+"""
 
 class Geometry_dash:
 
@@ -45,8 +46,7 @@ class Geometry_dash:
         self.velocity = pygame.Vector2(0, 0)
         self.mass = 5
         self.jump = False
-        self.jump_height = 8
-        self.mode = "Cube"
+        self.jump_height = 500
 
         # UI STUFF
         self.deaths = 0
@@ -277,7 +277,8 @@ class Geometry_dash:
         # Check if level ended or not
         if not self.world.editor or not self.debug:
             if self.world.end(self.player):
-                exit()
+                #exit()
+                pass
 
         # update player first
         self.player.move_ip(self.velocity)
@@ -309,7 +310,7 @@ class Geometry_dash:
         # add rotation to player
         if self.jump:
             if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
-                self.velocity.y -= self.jump_height * 100 * self.dt
+                self.velocity.y -= self.jump_height * self.dt
                 self.jump = False
             else:
                 if self.rotation_velocity > 0:
@@ -342,7 +343,7 @@ class Geometry_dash:
     def simulate_player(self, speed):
         # Simulating the player for debuging
         pass
-
+ 
     def death(self):
         self.player.topleft = (200, 450)
         self.world.reset()

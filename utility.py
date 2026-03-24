@@ -64,7 +64,7 @@ def render_text(
         text: str,
         position,
         size: int = 50,
-        color = "#000000",
+        color = "#FFFFFFFF",
         font: Optional[pygame.font.Font] = None,
         bold: bool = False,
         italic: bool = False,

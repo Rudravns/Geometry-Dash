@@ -1,3 +1,4 @@
+from matplotlib.pylab import MT19937
 import pygame
 import math
 import utility
@@ -13,6 +14,12 @@ class Editor:
         self.editor = editor
         self.editor_window = True
         self.place_type = 1  # 1 for spike, 2 for block, 3 for start, 4 for end
+        self.place_type_refrence = {
+            1 : "Spike",
+            2 : "Block",
+            3 : "Start",
+            4 : "End",
+        }
 
         # Grid
         self.grid = 40
@@ -30,6 +37,7 @@ class Editor:
         # World
         self.level = level
         self.world_origin_y = ground_y
+        self.block_start = self.get_start_block()#the world grid pos for the first bloc (the starting point)
 
         # World objects (WORLD COORDS)
         self.objects = {
@@ -329,7 +337,7 @@ class Editor:
         if self.flag_animation_timer.has_elapsed():
             self.flag_animation_timer.reset()
             self.flag_animation_timer.start()
-            self.flag_img = (self.flag_img + 1) % len(self.flag_tex.images)
+            self.flag_img = (self.flag_img + 1) % len(self.flag_tex.images) 
 
         self.screen.blit(self.flag_tex.get_image( self.flag_img), pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height)) # pyright: ignore[reportAttributeAccessIssue]
     # ===============================
@@ -355,6 +363,22 @@ class Editor:
         # get the distance from the start to te flag
         self.level_dist = (self.objects["Start"].x) + (self.objects["End"].x) + 400
 
+    def get_start_block(self):
+        best_x, best_y = 0,0 
+        for y, layer in enumerate(reversed(self.level)):
+            for x, element in enumerate(layer):
+                match element:
+                    case 0:
+                        continue
+                    case _:
+                        if best_x > x: best_x = x
+                        if best_y > y: best_y = y
+
+        return pygame.Vector2(best_x, best_y)
+                
+                    
+
+                    
     # ===============================
     # SAVE WORLD TO LIST (DYNAMIC BOUNDS)
     # ===============================
@@ -533,7 +557,7 @@ class Editor:
     # RESET
     # ===============================
     def reset(self):
-        self.x_scroll = -self.screen.get_width() // 4 - 100
+        self.x_scroll = -320
         self.y_scroll = 0
         self.objects["Spike"] = []
         self.objects["Block"] = []
