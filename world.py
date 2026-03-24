@@ -26,6 +26,7 @@ class Editor:
         self.y_scroll = 0
         self.level_completion = 0
         self.level_dist = 0
+        self.m3_mousepos = (0, 0) # For scrolling through the editor
 
         # World
         self.level = level
@@ -234,6 +235,16 @@ class Editor:
                         self.objects["Spike"].remove(s)
 
                     break
+        
+        else:
+            if mouse_down[1]: # middle click to move through the editor with the mouse
+                self.x_scroll += (mouse_pos[0] - self.m3_mousepos[0]) // self.grid
+                self.y_scroll += (mouse_pos[1] - self.m3_mousepos[1]) // self.grid
+            else:
+                self.x_scroll -= self.x_scroll % self.grid
+                self.y_scroll -= self.y_scroll % self.grid
+
+                self.m3_mousepos = mouse_pos
 
         self.save_to_list()
         return movement_type
