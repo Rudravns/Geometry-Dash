@@ -104,11 +104,11 @@ class Editor:
 
             if keys[pygame.K_UP] or keys[pygame.K_w]:
                 self.y_scroll -= self.grid
-                movement_type[0] = [1, -self.grid]
+                movement_type[0] = [1, self.grid]
 
             if keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 self.y_scroll += self.grid
-                movement_type[1] = [1, self.grid]
+                movement_type[1] = [1, -self.grid]
 
 
             self.movement_timer.reset()
