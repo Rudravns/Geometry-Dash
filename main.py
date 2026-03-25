@@ -65,7 +65,7 @@ class Geometry_dash:
         # SFX Setup
         self.sfx = music.Music(1)
 
-        # Editor
+        # Editor 
         self.world = Editor(
             [[3, 0, 0, 4]], True, self.ground.y, self.display
         )
