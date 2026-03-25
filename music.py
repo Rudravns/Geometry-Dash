@@ -28,7 +28,7 @@ class Music:
     def draw(self, screen, speed, xscroll):
         if not self.music_playing[self.song]: return False
 
-        linex = (pygame.mixer.music.get_pos() + speed) / 10 - xscroll
+        linex = (pygame.mixer.music.get_pos() + speed) // 10 - xscroll
 
         os.system("cls" if os.name == "nt" else "clear")
         print(round(linex, 2))

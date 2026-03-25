@@ -34,6 +34,7 @@ class Editor:
         self.level_completion = 0
         self.level_dist = 0
         self.m3_mousepos = (0, 0) # For scrolling through the editor
+        self.SCROLL_SENSE = 4 #Constant for how fast the camera scrolls with the mouse
 
         # World
         self.level = level
@@ -89,25 +90,25 @@ class Editor:
     # ===============================
     def level_editor(self, mouse_pos):
         keys = pygame.key.get_pressed()
-        movement_type = [0,0,0,0]
+        movement_type = [[0, 0], [0, 0], [0, 0], [0, 0]] #move_type[x][0] = bool (move in that direction?) : move_type[x][1] = int (velocity)
 
         if self.movement_timer.has_elapsed():
 
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
                 self.x_scroll -= self.grid
-                movement_type[2] = 1
+                movement_type[2] = [1, self.grid]
 
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
                 self.x_scroll += self.grid
-                movement_type[3] = 1
+                movement_type[3] = [1, -self.grid]
 
             if keys[pygame.K_UP] or keys[pygame.K_w]:
                 self.y_scroll -= self.grid
-                movement_type[0] = 1
+                movement_type[0] = [1, self.grid]
 
             if keys[pygame.K_DOWN] or keys[pygame.K_s]:
                 self.y_scroll += self.grid
-                movement_type[1] = 1
+                movement_type[1] = [1, -self.grid]
 
 
             self.movement_timer.reset()
@@ -119,6 +120,16 @@ class Editor:
         mouse_down = pygame.mouse.get_pressed()
         world_mos_pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.x_scroll, self.y_scroll)
         world_grid_mos_pos = (math.floor(world_mos_pos.x // self.grid) * self.grid, math.floor(world_mos_pos.y // self.grid) * self.grid)
+
+        # Vars for mouse scrolling
+        prev_x_scroll = self.x_scroll
+        prev_y_scroll = self.y_scroll
+        cont = True
+        for i in movement_type:
+            if i[0] == 1:
+                cont = False
+                break
+
         if mouse_down[0] and world_grid_mos_pos[1] < self.world_origin_y:  # left click to place and is above the ground
             world_x = mouse_pos[0] + self.x_scroll
             world_y = mouse_pos[1] + self.y_scroll
@@ -244,6 +255,30 @@ class Editor:
 
                     break
         
+        else: # middle click to move through the editor with the mouse
+            if mouse_down[1] and cont:
+                self.x_scroll += (mouse_pos[0] - self.m3_mousepos[0]) // (self.grid / self.SCROLL_SENSE)
+                self.y_scroll += (mouse_pos[1] - self.m3_mousepos[1]) // (self.grid / self.SCROLL_SENSE)
+            else:
+                self.m3_mousepos = mouse_pos
+            
+                if self.x_scroll % self.grid - self.grid < self.grid//2: self.x_scroll -= self.x_scroll % self.grid
+                else: self.x_scroll += self.grid - (self.x_scroll % self.grid)
+
+                if self.y_scroll % self.grid - self.grid < self.grid//2: self.y_scroll -= self.y_scroll % self.grid
+                else: self.y_scroll += self.grid - (self.y_scroll % self.grid)
+
+        if cont:
+            x = self.x_scroll - prev_x_scroll
+            y = self.y_scroll - prev_y_scroll
+            
+            if x > 0: movement_type[3] = [1, -x]
+            else: movement_type[2] = [1, -x]
+            if y > 0: movement_type[1] = [1, -y]
+            else: movement_type[0] = [1, -y]
+
+        """
+        #Old Code for mouse scrolling, ignore
         else:
             if mouse_down[1]: # middle click to move through the editor with the mouse
                 self.x_scroll += (mouse_pos[0] - self.m3_mousepos[0]) // self.grid
@@ -253,6 +288,7 @@ class Editor:
                 self.y_scroll -= self.y_scroll % self.grid
 
                 self.m3_mousepos = mouse_pos
+        """
 
         self.save_to_list()
         return movement_type

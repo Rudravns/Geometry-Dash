@@ -111,12 +111,11 @@ class Geometry_dash:
             if not self.world.editor:
                 self.apply_player_physics()
             else:
-                move_type = self.world.level_editor(mouse_pos)
-                if move_type[0]: self.player.move_ip(0, self.world.grid);self.ground.move_ip(0, self.world.grid)  # up
-                if move_type[1]: self.player.move_ip(0, -self.world.grid);self.ground.move_ip(0,
-                                                                                              -self.world.grid)  # down
-                if move_type[2]: self.player.move_ip(self.world.grid, 0)  # left
-                if move_type[3]: self.player.move_ip(-self.world.grid, 0)  # right
+                move_type = self.world.level_editor(mouse_pos) #move_type[x][0] = bool (move in that direction?) : move_type[x][1] = int (velocity)
+                if move_type[0][0]: self.player.move_ip(0, move_type[0][1]);self.ground.move_ip(0, move_type[0][1])  # up
+                if move_type[1][0]: self.player.move_ip(0, move_type[1][1]);self.ground.move_ip(0, move_type[1][1])  # down
+                if move_type[2][0]: self.player.move_ip(move_type[2][1], 0)  # left
+                if move_type[3][0]: self.player.move_ip(move_type[3][1], 0)  # right
 
             collide = self.world.update_world(
                 self.world.grid * 10 * self.dt, self.player,
