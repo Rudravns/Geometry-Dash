@@ -19,6 +19,7 @@ class Editor:
             2 : "Block",
             3 : "Start",
             4 : "End",
+            5 : "Player Spawn"
         }
 
         # Grid
@@ -47,7 +48,7 @@ class Editor:
             "Block": [],
             "Start": pygame.Rect(0, 440, self.grid, self.grid),
             "End": pygame.Rect(4240, 440, self.grid, self.grid),
-            
+            "PlayerSpawn": None
         }
 
         #init textures
@@ -203,6 +204,22 @@ class Editor:
                     and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
                         self.objects["End"].x = grid_x
                         self.objects["End"].y = grid_y
+                case 5:  # Player Spawn
+                    # Prevent overlap with spikes, start, end, or blocks
+                    if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
+                    and not new_rect.colliderect(self.objects["Start"]) \
+                    and not new_rect.colliderect(self.objects["End"]) \
+                    and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
+                        
+                        # Check support (Must be on ground OR on top of a block)
+                        check_rect = pygame.Rect(grid_x, grid_y + self.grid, self.grid, self.grid)
+                        supported = False
+                        if (grid_y + self.grid >= self.world_origin_y) or \
+                           any(block.colliderect(check_rect) for block in self.objects["Block"]):
+                            supported = True
+                        
+                        if supported:
+                            self.objects["PlayerSpawn"] = new_rect
                 case _:
                     raise ValueError("This block doesn't exist")
             
@@ -225,36 +242,39 @@ class Editor:
                 if block.colliderect(click_rect):
                     self.objects["Block"].remove(block)
 
-                    # Check for unsupported spikes
-                    spikes_to_remove = []
-                    for spike in self.objects["Spike"]:
-                        supported = False
-                        if spike.type == "Pointing Up":
-                            check_rect = pygame.Rect(spike.x, spike.y + self.grid, self.grid, self.grid)
-                            if (spike.y + self.grid >= self.world_origin_y) or \
-                               any(b.colliderect(check_rect) for b in self.objects["Block"]):
-                                supported = True
-                        elif spike.type == "Pointing Right":
-                            check_rect = pygame.Rect(spike.x - self.grid, spike.y, self.grid, self.grid)
-                            if any(b.colliderect(check_rect) for b in self.objects["Block"]):
-                                supported = True
-                        elif spike.type == "Pointing Down":
-                            check_rect = pygame.Rect(spike.x, spike.y - self.grid, self.grid, self.grid)
-                            if any(b.colliderect(check_rect) for b in self.objects["Block"]):
-                                supported = True
-                        elif spike.type == "Pointing Left":
-                            check_rect = pygame.Rect(spike.x + self.grid, spike.y, self.grid, self.grid)
-                            if any(b.colliderect(check_rect) for b in self.objects["Block"]):
-                                supported = True
-                        
-                        if not supported:
-                            spikes_to_remove.append(spike)
+            # Remove Player Spawn
+            if self.objects["PlayerSpawn"] and self.objects["PlayerSpawn"].colliderect(click_rect):
+                self.objects["PlayerSpawn"] = None
+
+                # Check for unsupported spikes
+                spikes_to_remove = []
+                for spike in self.objects["Spike"]:
+                    supported = False
+                    if spike.type == "Pointing Up":
+                        check_rect = pygame.Rect(spike.x, spike.y + self.grid, self.grid, self.grid)
+                        if (spike.y + self.grid >= self.world_origin_y) or \
+                            any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                            supported = True
+                    elif spike.type == "Pointing Right":
+                        check_rect = pygame.Rect(spike.x - self.grid, spike.y, self.grid, self.grid)
+                        if any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                            supported = True
+                    elif spike.type == "Pointing Down":
+                        check_rect = pygame.Rect(spike.x, spike.y - self.grid, self.grid, self.grid)
+                        if any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                            supported = True
+                    elif spike.type == "Pointing Left":
+                        check_rect = pygame.Rect(spike.x + self.grid, spike.y, self.grid, self.grid)
+                        if any(b.colliderect(check_rect) for b in self.objects["Block"]):
+                            supported = True
                     
+                    if not supported:
+                        spikes_to_remove.append(spike)
+                
                     for s in spikes_to_remove:
                         self.objects["Spike"].remove(s)
-
-                    break
-        
+                        break
+            
         else: # middle click to move through the editor with the mouse
             if mouse_down[1] and cont:
                 self.x_scroll += (mouse_pos[0] - self.m3_mousepos[0]) // (self.grid / self.SCROLL_SENSE)
@@ -297,9 +317,9 @@ class Editor:
         """use mouse wheel to change place type"""
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 4:  # Scroll up
-                self.place_type = (self.place_type % 4) + 1
+                self.place_type = (self.place_type % 5) + 1
             elif event.button == 5:  # Scroll down
-                self.place_type = (self.place_type - 2) % 4 + 1
+                self.place_type = (self.place_type - 2) % 5 + 1
 
     # ===============================
     # DRAW GRID
@@ -346,6 +366,8 @@ class Editor:
                     self.flag_animation_timer.reset()
                     self.flag_animation_timer.start()
                 image = self.flag_tex.get_image(self.flag_img).convert_alpha()
+            case 5: # Player Spawn
+                image = self.miss_tex.get_image(0).convert_alpha()
             case _: # Missing
                 image = self.miss_tex.get_image(0).convert_alpha()
         if not skip:
@@ -359,7 +381,7 @@ class Editor:
         pygame.draw.line(self.screen, self.origin_color, (0, origin_screen_y), (width, origin_screen_y), self.origin_thickness)
 
         # Draw selected object
-        utility.render_text(f"Selected: {utility.map_key[self.place_type]}",
+        utility.render_text(f"Selected: {self.place_type_refrence[self.place_type]}",
                             (((width/2)-utility.scale(100, round_values= True)), utility.scale(10, round_values=True)),
                             utility.scale(50, round_values= True), surface=self.screen)  # pyright: ignore[reportArgumentType] #
         return (grid_x, grid_y)
@@ -387,6 +409,10 @@ class Editor:
             self.flag_img = (self.flag_img + 1) % len(self.flag_tex.images) 
 
         self.screen.blit(self.flag_tex.get_image( self.flag_img), pygame.Rect(self.objects["End"].x - self.x_scroll, self.objects["End"].y - self.y_scroll, self.objects["End"].width, self.objects["End"].height)) # pyright: ignore[reportAttributeAccessIssue]
+
+        if self.objects["PlayerSpawn"]:
+            self.screen.blit(self.miss_tex.get_image(0), pygame.Rect(self.objects["PlayerSpawn"].x - self.x_scroll, self.objects["PlayerSpawn"].y - self.y_scroll, self.objects["PlayerSpawn"].width, self.objects["PlayerSpawn"].height))
+
     # ===============================
     # LOAD WORLD 
     # ===============================
@@ -408,7 +434,7 @@ class Editor:
                 elif block == 7:
                     self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Left"))
         # get the distance from the start to te flag
-        self.level_dist = (self.objects["Start"].x) + (self.objects["End"].x) + 400
+        self.level_dist = (self.get_start_point().x) + (self.objects["End"].x) + 400
 
     def get_start_block(self):
         best_x, best_y = 0,0 
@@ -442,12 +468,12 @@ class Editor:
         all_x = [obj.x for obj in spikes] + [obj.x for obj in blocks] + [self.objects["Start"].x, self.objects["End"].x]
         all_y = [obj.y for obj in spikes] + [obj.y for obj in blocks] + [self.objects["Start"].y, self.objects["End"].y]
 
-        min_x, max_x = min(all_x), max(all_x)
+        min_x, max_x = 0, max(all_x)
         min_y, max_y = min(all_y), max(all_y)
 
 
         # 2. Convert to grid coordinates
-        grid_min_x = int(min_x // self.grid)
+        grid_min_x = 0
         grid_max_x = int(max_x // self.grid)
         grid_min_y = int(min_y // self.grid)
         grid_max_y = int(max_y // self.grid)
@@ -478,6 +504,20 @@ class Editor:
         # 6. Set main level list
         self.level = list(reversed(new_level))
 
+    def get_start_pos_x(self):
+        min_x = float('inf')
+        if self.objects["Block"]:
+            min_x = min(min_x, min(b.x for b in self.objects["Block"]))
+        if self.objects["Spike"]:
+            min_x = min(min_x, min(s.x for s in self.objects["Spike"]))
+            
+        if min_x == float('inf'):
+            return self.objects["Start"].x
+        return min_x
+
+    def get_start_point(self):
+        return self.objects["PlayerSpawn"] if self.objects["PlayerSpawn"] else self.objects["Start"]
+
     # ===============================
     # UPDATE WORLD (PLAY MODE)
     # ===============================
@@ -488,7 +528,7 @@ class Editor:
         self.x_scroll += speed
         print(speed)
 
-        start_x = self.objects["Start"].x
+        start_x = self.get_start_point().x
         end_x = self.objects["End"].x + self.objects["End"].width
         self.level_completion = round((self.x_scroll/(self.level_dist)) * 100) + 15
 
@@ -592,6 +632,8 @@ class Editor:
         end_data = objects_data.get("End", [self.grid * 100, self.world_origin_y, self.grid, self.grid])
         self.objects["Start"] = pygame.Rect(*start_data)
         self.objects["End"] = pygame.Rect(*end_data)
+        ps_data = objects_data.get("PlayerSpawn", None)
+        self.objects["PlayerSpawn"] = pygame.Rect(*ps_data) if ps_data else None
 
         # Load map
         self.level = data.get("map", [])
@@ -604,11 +646,11 @@ class Editor:
     # RESET
     # ===============================
     def reset(self):
-        self.x_scroll = -320
-        self.y_scroll = 0
         self.objects["Spike"] = []
         self.objects["Block"] = []
         self.get_world()
+        self.x_scroll = self.get_start_point().x - (self.grid * 7)
+        self.y_scroll = 0
     
     def set_level(self, level):
         self.level = level
@@ -638,7 +680,8 @@ class Editor:
                 "Spike": [spike_to_dict(spike) for spike in self.objects["Spike"]],
                 "Block": [rect_to_list(block) for block in self.objects["Block"]],
                 "Start": rect_to_list(self.objects["Start"]),
-                "End": rect_to_list(self.objects["End"])
+                "End": rect_to_list(self.objects["End"]),
+                "PlayerSpawn": rect_to_list(self.objects["PlayerSpawn"]) if self.objects["PlayerSpawn"] else None
             },
             "map": self.level
         }

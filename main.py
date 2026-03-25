@@ -67,11 +67,17 @@ class Geometry_dash:
 
         # Editor 
         self.world = Editor(
-            [[3, 0, 0, 4]], True, self.ground.y, self.display
+            [[3,0,0,0],[5, 0, 0, 4]], True, self.ground.y, self.display
         )
         self.world.reset()
 
         self.world.load_from_dict(utility.load_map(map_name))
+
+        self.world.reset()
+        start_point = self.world.get_start_point()
+        self.player.x = start_point.x - self.world.x_scroll
+        self.player.y = start_point.y + (start_point.height - self.player.height)
+        self.Player_rect = self.player.copy()
 
         self.debug = True  # for hitbox
         self.Text_debug = False  # for console logs
@@ -150,12 +156,16 @@ class Geometry_dash:
                         self.sfx.music_controls()
                         self.world.editor = not self.world.editor
                         self.world.reset()  # Reset camera scroll when toggling editor mode
-                        self.player.topleft = (400, 450)  # Reset player position when toggling editor mode
+                        start_point = self.world.get_start_point()
+                        self.player.x = start_point.x - self.world.x_scroll
+                        self.player.y = start_point.y + (start_point.height - self.player.height)
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
                     if event.key == pygame.K_r and (event.mod & pygame.KMOD_CTRL):
-                        self.player.topleft = (400, 450)  # Reset player position when toggling editor mode
+                        self.world.set_level([[3,0,0,0],[5, 0, 0, 4]])
+                        start_point = self.world.get_start_point()
+                        self.player.x = start_point.x - self.world.x_scroll
+                        self.player.y = start_point.y + (start_point.height - self.player.height)
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
-                        self.world.set_level([[3, 0, 0, 4]])
 
                     if event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
                         data = self.world.__dict__()
@@ -344,8 +354,10 @@ class Geometry_dash:
         pass
  
     def death(self):
-        self.player.topleft = (200, 450)
         self.world.reset()
+        start_point = self.world.get_start_point()
+        self.player.x = start_point.x - self.world.x_scroll
+        self.player.y = start_point.y + (start_point.height - self.player.height)
         self.velocity.y = 0
         self.rotation = 0  # If collided with a cube kill_zone, exit the game
         self.deaths += 1
