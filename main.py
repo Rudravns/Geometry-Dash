@@ -247,7 +247,7 @@ class Geometry_dash:
         self.display.blit(self.player_imgs.get_image(0), self.Player_rect if not self.world.editor else self.player)
 
         # draw music related stuff if music is playing and editor is enabled
-        self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll)
+        self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll, self.world.objects["PlayerSpawn"])
 
         # draw UI and debug info
         if self.debug:

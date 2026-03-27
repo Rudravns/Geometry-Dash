@@ -8,6 +8,7 @@ class Music:
         self.song = song
         self.main_mpath = "asset/Sounds/Music"
         self.speed = 0
+        self.song_player = 0
 
         self.musics:dict = {
             "Level 1" : f"{self.main_mpath}/level1.mp3",
@@ -22,18 +23,22 @@ class Music:
         file = self.musics[f"Level {self.song}"]
 
         pygame.mixer.music.load(file)
-        if self.music_playing[self.song]: pygame.mixer.music.play()
-        else: pygame.mixer.music.stop()
+        if self.music_playing[self.song]: 
+            pygame.mixer.music.play()
+            self.song_player = start_pos // 100
+        else: 
+            pygame.mixer.music.stop()
+            self.song_player = 0
 
-    def draw(self, screen, speed, xscroll):
+    def draw(self, screen, speed, xscroll, spawn_pos):
         if not self.music_playing[self.song]: return False
 
-        linex = (pygame.mixer.music.get_pos() + speed) // 10 - xscroll
+        self.song_player = (pygame.mixer.music.get_pos() * speed) // 10 + spawn_pos[0] - xscroll
 
         os.system("cls" if os.name == "nt" else "clear")
-        print(round(linex, 2))
+        print(round(self.song_player, 2))
         
-        pygame.draw.line(screen, (255, 0, 0), (linex, 0), (linex, screen.get_height()), 2)
+        pygame.draw.line(screen, (255, 0, 0), (self.song_player, 0), (self.song_player, screen.get_height()), 2)
 
     def get_frequency(self):
         return pygame.mixer.music.get_volume()
