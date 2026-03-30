@@ -44,9 +44,9 @@ class Geometry_dash:
         self.rotation_speed = 12
         self.GRAVITY = -9.8  # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
-        self.mass = 5
+        self.mass = 0.2
         self.jump = False
-        self.jump_height = 500
+        self.jump_height = 12
 
         # UI STUFF
         self.deaths = 0
@@ -71,7 +71,7 @@ class Geometry_dash:
         )
         self.world.reset()
 
-        self.world.load_from_dict(utility.load_map(map_name))
+        #self.world.load_from_dict(utility.load_map(map_name))
 
         self.world.reset()
         start_point = self.world.get_start_point()
@@ -83,6 +83,7 @@ class Geometry_dash:
         self.Text_debug = False  # for console logs
         self.simulate = False  # for simulating the player in the editor mode without actually controlling it
         self.pos = pygame.Vector2(0, 0)  # for simulating the player in the editor mode without actually controlling it
+        self.max_vel = self.velocity.y # debug variable for max velocity reached
 
     def run(self):
         while True:
@@ -91,7 +92,7 @@ class Geometry_dash:
             base_h = utility.BASE_SIZE[1]
 
             if window_h == 0: window_h = 1
-            scale = window_h / base_h
+            scale = window_h / base_h # Calculate the scale factor based on height, since we want to maintain aspect ratio. We use the base height as the reference for scaling.
             logical_w = int(window_w / scale)
             logical_h = base_h
 
@@ -110,7 +111,7 @@ class Geometry_dash:
             mouse_pos = (mx / scale, my / scale)
 
             self.display.fill((116, 75, 196))  # rgb - 255-0
-            self.dt = self.clock.tick(60) / 1000  # the number inside is the fps or will also tick rate
+            self.dt = self.clock.tick(0) / 1000  # the number inside is the fps or will also tick rate
             # draw stuff
             self.draw(mouse_pos)
             # update physics or level editor
@@ -275,7 +276,7 @@ class Geometry_dash:
                 f"Level Length {self.world.level_dist} and Level completion {self.world.level_completion}",
                 (10, 260), 20, surface=self.display)
             utility.render_text(
-                f"Frequency: {self.sfx.get_frequency()}", (10, 280), 20, surface=self.display
+                f"Velocity.Y: {round(self.velocity.y)}", (10, 280), 20, surface=self.display
             )
 
             pygame.draw.rect(self.display, (255, 0, 0), self.player, 2)
@@ -293,7 +294,7 @@ class Geometry_dash:
         self.player.move_ip(self.velocity)
 
         # grav implementation
-        self.velocity.y -= self.GRAVITY * self.mass * self.dt
+        self.velocity.y -= self.GRAVITY * self.mass + self.dt
         self.velocity.y = min(self.velocity.y, 50)
 
         # ground colliton
@@ -319,7 +320,7 @@ class Geometry_dash:
         # add rotation to player
         if self.jump:
             if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
-                self.velocity.y -= self.jump_height * self.dt
+                self.velocity.y -= self.jump_height
                 self.jump = False
             else:
                 if self.rotation_velocity > 0:
@@ -329,7 +330,7 @@ class Geometry_dash:
         else:
             self.rotation = (self.rotation - 300 * self.dt) % 360  # here it was 600 before which does a full 360  also we do mod 360 so it doesn't go above 360 deg
             self.rotation_to = self.rotation - self.rotation % 90  # In floor terms, subtracts rotation to the nearest floor of 90 degree angle
-            if self.rotation % 90 != self.rotation % 45: self.rotation_to += 90
+            if self.rotation % 90 != self.rotation % 45: self.rotation_to += 90  # If the rotation is closer to the next 90 degree angle, rotate to that one instead
 
             if self.rotation > self.rotation_to:
                 self.rotation_velocity = -1 * self.rotation_speed

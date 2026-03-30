@@ -14,15 +14,6 @@ A lightweight Python remake of Geometry Dash — a fast-paced side-scrolling pla
 - Easy-to-read Python code intended for learning and modification
 - level editor
 
----
-
-## Demo
-
-placeholderr demo GIF or short video here when available:
-
-![Demo Placeholder](docs/demo.gif)
-
----
 
 ## Requirements
 
@@ -32,7 +23,7 @@ placeholderr demo GIF or short video here when available:
 
 Install pygame:
 ```bash
-pip install pygame
+py -m pip install pygame
 ```
 
 

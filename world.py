@@ -617,30 +617,35 @@ class Editor:
         Load the editor state from a dictionary (like JSON).
         Restores spikes, blocks, start/end, and level map.
         """
-        self.editor = data.get("editor", False)
-        self.x_scroll = data.get("x_scroll", -self.screen.get_width() // 2)
-        self.y_scroll = data.get("y_scroll", 0)
+      
+        try:
+            self.editor = data.get("editor", False)
+            self.x_scroll = data.get("x_scroll", -self.screen.get_width() // 2)
+            self.y_scroll = data.get("y_scroll", 0)
 
-        objects_data = data.get("objects", {})
+            objects_data = data.get("objects", {})
 
-        # Clear objects (they will be rebuilt from the map via get_world)
-        self.objects["Spike"] = []
-        self.objects["Block"] = []
+            # Clear objects (they will be rebuilt from the map via get_world)
+            self.objects["Spike"] = []
+            self.objects["Block"] = []
 
-        # Load Start & End
-        start_data = objects_data.get("Start", [0, self.world_origin_y, self.grid, self.grid])
-        end_data = objects_data.get("End", [self.grid * 100, self.world_origin_y, self.grid, self.grid])
-        self.objects["Start"] = pygame.Rect(*start_data)
-        self.objects["End"] = pygame.Rect(*end_data)
-        ps_data = objects_data.get("PlayerSpawn", None)
-        self.objects["PlayerSpawn"] = pygame.Rect(*ps_data) if ps_data else None
+            # Load Start & End
+            start_data = objects_data.get("Start", [0, self.world_origin_y, self.grid, self.grid])
+            end_data = objects_data.get("End", [self.grid * 100, self.world_origin_y, self.grid, self.grid])
+            self.objects["Start"] = pygame.Rect(*start_data)
+            self.objects["End"] = pygame.Rect(*end_data)
+            ps_data = objects_data.get("PlayerSpawn", None)
+            self.objects["PlayerSpawn"] = pygame.Rect(*ps_data) if ps_data else None
 
-        # Load map
-        self.level = data.get("map", [])
+            # Load map
+            self.level = data.get("map", [])
 
-        # Optional: Recalculate world objects if needed
-        self.get_world()
+            # Optional: Recalculate world objects if needed
+            self.get_world()
 
+        except Exception as e:
+            print(f"Error loading world from dict: {e}")
+           
 
     # ===============================
     # RESET
