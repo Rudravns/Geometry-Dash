@@ -41,12 +41,12 @@ class Geometry_dash:
         self.rotation = 0
         self.rotation_to = 0
         self.rotation_velocity = 0
-        self.rotation_speed = 12
+        self.rotation_speed = 45
         self.GRAVITY = -9.8  # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
         self.mass = 0.2
         self.jump = False
-        self.jump_height = 12
+        self.jump_height = 18
 
         # UI STUFF
         self.deaths = 0
@@ -156,6 +156,7 @@ class Geometry_dash:
                     if event.key == pygame.K_F2:
                         self.sfx.music_controls()
                         self.world.editor = not self.world.editor
+                        if self.world.objects["PlayerSpawn"] is None: self.world.objects["PlayerSpawn"] = self.world.objects["Start"]  # If no spawn point is set, the start point will be the spawn point
                         self.world.reset()  # Reset camera scroll when toggling editor mode
                         start_point = self.world.get_start_point()
                         self.player.x = start_point.x - self.world.x_scroll
@@ -328,7 +329,7 @@ class Geometry_dash:
                 else:
                     self.smooth_rotation(self.rotation < self.rotation_to)
         else:
-            self.rotation = (self.rotation - 300 * self.dt) % 360  # here it was 600 before which does a full 360  also we do mod 360 so it doesn't go above 360 deg
+            self.rotation = (self.rotation - self.rotation_speed * 10 * self.dt) % 360  # here it was 600 before which does a full 360  also we do mod 360 so it doesn't go above 360 deg
             self.rotation_to = self.rotation - self.rotation % 90  # In floor terms, subtracts rotation to the nearest floor of 90 degree angle
             if self.rotation % 90 != self.rotation % 45: self.rotation_to += 90  # If the rotation is closer to the next 90 degree angle, rotate to that one instead
 
@@ -374,7 +375,7 @@ class Geometry_dash:
             self.rotation = self.rotation_to
             return
 
-        self.rotation_to += self.rotation_velocity
+        self.rotation_to += self.rotation_velocity * self.rotation_speed * self.dt
         if self.rotation_velocity > 2: self.rotation_velocity = self.rotation_velocity * 0.9
         else: self.rotation_velocity = 2
         print("smooth")
