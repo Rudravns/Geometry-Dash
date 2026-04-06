@@ -19,22 +19,26 @@ class Music:
 
         self.music_playing:list = [False, False, False] #one for each song in the song list
 
-    def music_controls(self, start_pos = 0):
+    def music_controls(self, start_pos = 0, obj=None, scroll=0):
         self.music_playing[self.song] = not self.music_playing[self.song]
         file = self.musics[f"Level {self.song}"]
+
+        start = pygame.Vector2(0, 0)
+        if obj:
+            start = obj["PlayerSpawn"] if obj["PlayerSpawn"] else obj["Start"]
 
         pygame.mixer.music.load(file)
         if self.music_playing[self.song]: 
             pygame.mixer.music.play()
-            self.song_player = start_pos // 100
+            self.song_player = start.x - scroll
         else: 
             pygame.mixer.music.stop()
             self.song_player = 0
 
-    def draw(self, screen, speed, xscroll, spawn_pos):
+    def draw(self, screen, speed, xscroll):
         if not self.music_playing[self.song]: return False
 
-        self.song_player = (pygame.mixer.music.get_pos() * speed) // 10 + spawn_pos[0] - xscroll
+        self.song_player += speed
 
         os.system("cls" if os.name == "nt" else "clear")
         print(round(self.song_player, 2))

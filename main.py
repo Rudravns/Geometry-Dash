@@ -42,11 +42,11 @@ class Geometry_dash:
         self.rotation_to = 0
         self.rotation_velocity = 0
         self.rotation_speed = 45
-        self.GRAVITY = -9.8  # all caps = constant
+        self.GRAVITY = -10  # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
-        self.mass = 0.2
+        self.mass = 2
         self.jump = False
-        self.jump_height = 18
+        self.jump_height = 5
 
         # UI STUFF
         self.deaths = 0
@@ -154,7 +154,7 @@ class Geometry_dash:
                     if event.key == pygame.K_F5 and self.world.editor:
                         self.simulate = not self.simulate
                     if event.key == pygame.K_F2:
-                        self.sfx.music_controls()
+                        self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
                         self.world.editor = not self.world.editor
                         if self.world.objects["PlayerSpawn"] is None: self.world.objects["PlayerSpawn"] = self.world.objects["Start"]  # If no spawn point is set, the start point will be the spawn point
                         self.world.reset()  # Reset camera scroll when toggling editor mode
@@ -174,7 +174,7 @@ class Geometry_dash:
                         utility.save_map("Trial.json", data)
 
                     if event.key == pygame.K_p and self.world.editor:
-                        self.sfx.music_controls()
+                        self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
 
                     if event.key == pygame.K_F11:
                         if utility.get_fullscreen() == self.FULL_SCREEN_SIZE:
@@ -249,7 +249,7 @@ class Geometry_dash:
         self.display.blit(self.player_imgs.get_image(0), self.Player_rect if not self.world.editor else self.player)
 
         # draw music related stuff if music is playing and editor is enabled
-        self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll, self.world.objects["PlayerSpawn"])
+        if self.world.editor: self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll)
 
         # draw UI and debug info
         if self.debug:
@@ -295,7 +295,7 @@ class Geometry_dash:
         self.player.move_ip(self.velocity)
 
         # grav implementation
-        self.velocity.y -= self.GRAVITY * self.mass + self.dt
+        self.velocity.y -= self.GRAVITY * self.mass * self.dt
         self.velocity.y = min(self.velocity.y, 50)
 
         # ground colliton
