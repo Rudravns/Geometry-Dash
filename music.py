@@ -10,6 +10,8 @@ class Music:
         self.main_mpath = "asset/Sounds/Music"
         self.speed = 0
         self.song_player = 0
+        self.pos = 0
+        self.MS_RATIO = 600/1500
 
         self.musics:dict = {
             "Level 1" : f"{self.main_mpath}/level1.mp3",
@@ -29,8 +31,12 @@ class Music:
 
         pygame.mixer.music.load(file)
         if self.music_playing[self.song]: 
-            pygame.mixer.music.play()
-            self.song_player = start.x - scroll
+            pos = scroll/self.MS_RATIO/1000 if scroll >= 0 else 0
+            pygame.mixer.music.play(start=pos)
+            if start.x >= scroll:
+                self.song_player = start.x - scroll
+            else:
+                self.song_player = 0
         else: 
             pygame.mixer.music.stop()
             self.song_player = 0
@@ -40,8 +46,12 @@ class Music:
 
         self.song_player += speed
 
+        if self.song_player <= 600:
+            self.pos = pygame.mixer.music.get_pos()
+
         os.system("cls" if os.name == "nt" else "clear")
-        print(round(self.song_player, 2))
+        print(round(self.pos, 2))
+        #print(round(self.song_player, 2))
         
         pygame.draw.line(screen, (255, 0, 0), (self.song_player, 0), (self.song_player, screen.get_height()), 2)
 

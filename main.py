@@ -1,6 +1,7 @@
 import os
 import sys
 import pygame  # main lib for rendering
+import numpy as np
 from world import *
 import music
 import utility
@@ -41,12 +42,12 @@ class Geometry_dash:
         self.rotation = 0
         self.rotation_to = 0
         self.rotation_velocity = 0
-        self.rotation_speed = 45
-        self.GRAVITY = -10  # all caps = constant
+        self.rotation_speed = 40
+        self.GRAVITY = -12  # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
-        self.mass = 2
+        self.mass = 4
         self.jump = False
-        self.jump_height = 5
+        self.jump_height = 12
 
         # UI STUFF
         self.deaths = 0
@@ -87,6 +88,7 @@ class Geometry_dash:
 
     def run(self):
         while True:
+            #os.system('cls' if os.name == 'nt' else 'clear')
             # Calculate scaling
             window_w, window_h = self.window.get_size()
             base_h = utility.BASE_SIZE[1]
@@ -111,7 +113,7 @@ class Geometry_dash:
             mouse_pos = (mx / scale, my / scale)
 
             self.display.fill((116, 75, 196))  # rgb - 255-0
-            self.dt = self.clock.tick(0) / 1000  # the number inside is the fps or will also tick rate
+            self.dt = self.clock.tick(self.max_fps) / 1000  # the number inside is the fps or will also tick rate
             # draw stuff
             self.draw(mouse_pos)
             # update physics or level editor
@@ -154,7 +156,6 @@ class Geometry_dash:
                     if event.key == pygame.K_F5 and self.world.editor:
                         self.simulate = not self.simulate
                     if event.key == pygame.K_F2:
-                        self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
                         self.world.editor = not self.world.editor
                         if self.world.objects["PlayerSpawn"] is None: self.world.objects["PlayerSpawn"] = self.world.objects["Start"]  # If no spawn point is set, the start point will be the spawn point
                         self.world.reset()  # Reset camera scroll when toggling editor mode
@@ -162,6 +163,7 @@ class Geometry_dash:
                         self.player.x = start_point.x - self.world.x_scroll
                         self.player.y = start_point.y + (start_point.height - self.player.height)
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
+                        self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
                     if event.key == pygame.K_r and (event.mod & pygame.KMOD_CTRL):
                         self.world.set_level([[3,0,0,0],[5, 0, 0, 4]])
                         start_point = self.world.get_start_point()
@@ -192,9 +194,10 @@ class Geometry_dash:
             pygame.display.update()
             if self.Text_debug:
                 os.system('cls' if os.name == 'nt' else 'clear')
-                print(self)
-                print(self.world)
-                print(collide)
+                #print(self)
+                #print(self.world)
+                #print(collide)
+                print(self.dt)
 
     def draw(self, mouse_pos):
         #Debug
@@ -292,11 +295,12 @@ class Geometry_dash:
                 pass
 
         # update player first
-        self.player.move_ip(self.velocity)
+        self.player.move_ip(self.velocity*self.dt*100)
 
         # grav implementation
         self.velocity.y -= self.GRAVITY * self.mass * self.dt
-        self.velocity.y = min(self.velocity.y, 50)
+        #self.velocity.y = min(self.velocity.y, 20)
+        #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
 
         # ground colliton
         if self.player.colliderect(self.ground):  # rect vs rect: if collide => True no collide => False
@@ -322,6 +326,7 @@ class Geometry_dash:
         if self.jump:
             if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
                 self.velocity.y -= self.jump_height
+                #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
                 self.jump = False
             else:
                 if self.rotation_velocity > 0:
