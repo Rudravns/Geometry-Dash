@@ -656,6 +656,7 @@ class Editor:
         self.get_world()
         self.x_scroll = self.get_start_point().x - (self.grid * 7)
         self.y_scroll = 0
+        self.level_completion = 0
     
     def set_level(self, level):
         self.level = level

@@ -70,7 +70,8 @@ def render_text(
         italic: bool = False,
         underline: bool = False,
         draw: bool = True,
-        surface: Optional[pygame.Surface] = None
+        surface: Optional[pygame.Surface] = None,
+        center: bool = False,
 ) -> Tuple[pygame.Surface, pygame.Rect]:
     """Render text to the active display surface."""
 
@@ -100,7 +101,7 @@ def render_text(
 
     # Render text
     text_surface = font.render(str(text), True, color) # pyright: ignore[reportOptionalMemberAccess]
-    text_rect = text_surface.get_rect(topleft=scale(position))
+    text_rect = text_surface.get_rect(topleft=scale(position)) if not center else text_surface.get_rect(center=scale(position))
 
     if draw:
         screen.blit(text_surface, text_rect)
@@ -337,3 +338,37 @@ class Timer:
     def change_duration(self, new_duration: float):
         self.duration = new_duration
         self.reset()
+
+
+class button:
+    def __init__(self, img_path, rect, font_size=50):
+        self.img = SpriteSheet()
+        self.img.extract_single_image(img_path, rect.size, convert_alpha=True)
+        self.font_size = font_size
+        self.rect = rect
+        self.clicked = False # Prevents continuous triggering if mouse is held down
+
+    def draw(self, surface, hbox):
+        # Blit the extracted image to the surface at the rect's location
+        surface.blit(self.img.get_image(0), self.rect.topleft)
+        pygame.draw.rect(surface, (255, 0, 0), self.rect, 2) 
+
+    def update(self, mouse_pos):
+        action = False
+        
+        # Check if the adjusted mouse coordinates are over the button
+        if self.rect.collidepoint(mouse_pos):
+            # pygame.mouse.get_pressed() is the Left Click
+            if pygame.mouse.get_pressed() == 1 and not self.clicked:
+                self.clicked = True
+                action = True
+                
+        # Reset the clicked state when the mouse button is released
+        if pygame.mouse.get_pressed() == 0:
+            self.clicked = False
+            
+        return action
+    
+    def resize(self, rect):
+        self.rect = rect
+        self.img.rezize_images(rect.size, 0)

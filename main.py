@@ -1,3 +1,4 @@
+from email import utils
 import os
 import sys
 import pygame  # main lib for rendering
@@ -29,7 +30,7 @@ class Geometry_dash:
 
         # timing
         self.clock = pygame.time.Clock()
-        self.max_fps = 60  # tick rate
+        self.max_fps = 120  # tick rate
         self.dt = 0
 
         # making of the player
@@ -72,7 +73,7 @@ class Geometry_dash:
         )
         self.world.reset()
 
-        #self.world.load_from_dict(utility.load_map(map_name))
+        self.world.load_from_dict(utility.load_map(map_name))
 
         self.world.reset()
         start_point = self.world.get_start_point()
@@ -85,6 +86,10 @@ class Geometry_dash:
         self.simulate = False  # for simulating the player in the editor mode without actually controlling it
         self.pos = pygame.Vector2(0, 0)  # for simulating the player in the editor mode without actually controlling it
         self.max_vel = self.velocity.y # debug variable for max velocity reached
+
+
+
+    # -------------------- MAIN LOOP --------------------
 
     def run(self):
         while True:
@@ -139,16 +144,14 @@ class Geometry_dash:
             # event handling
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    pygame.quit()
-                    sys.exit()
+                    return
 
                 self.world.change_place_type(event)  # update the block type to be placed in the editor
 
                 if event.type == pygame.KEYDOWN:
 
                     if event.key == pygame.K_ESCAPE:
-                        pygame.quit()
-                        sys.exit()
+                        return
                     if event.key == pygame.K_F3:
                         self.debug = not self.debug
                     if event.key == pygame.K_F4:
@@ -199,7 +202,86 @@ class Geometry_dash:
                 #print(collide)
                 print(self.dt)
 
-    def draw(self, mouse_pos):
+    # -------------------- MAIN Menu --------------------
+    def main_menu(self):
+        # --- Initialize UI Elements ---
+        # Calculate a centered position for the button using logical BASE_SIZE
+        btn_w, btn_h = 200, 200 
+        center_x = utility.BASE_SIZE[0] / 2 - (btn_w / 2)
+        center_y = utility.BASE_SIZE[1] / 2 - (btn_h / 2)
+        
+        play_rect = pygame.Rect(center_x, center_y, btn_w, btn_h)
+        play_btn = utility.button("Buttons/play.png", play_rect)
+
+        while True:
+            # Calculate scaling
+            window_w, window_h = self.window.get_size()
+            base_h = utility.BASE_SIZE[1]
+
+            if window_h == 0: window_h = 1
+            scale = window_h / base_h # Calculate the scale factor based on height
+            logical_w = int(window_w / scale)
+            logical_h = base_h
+
+            if self.display.get_width() != logical_w or self.display.get_height() != logical_h:
+                if (self.display.get_width(), self.display.get_height()) != self.FULL_SCREEN_SIZE: 
+                    self.last_screen_size = (self.display.get_width(), self.display.get_height())
+                self.bg.rezize_images((logical_w, logical_h))
+                self.display = pygame.Surface((logical_w, logical_h))
+                self.tint_surface = pygame.Surface((logical_w, logical_h), pygame.SRCALPHA)
+                self.ground.width = logical_w
+                self.world.screen = self.display
+
+            # Mouse correction (Passes logical coordinates to the button)
+            mx, my = pygame.mouse.get_pos()
+            mouse_pos = (mx / scale, my / scale)
+
+            self.dt = self.clock.tick(self.max_fps) / 1000
+            self.display.fill((0, 0, 0))
+            
+            # draw the bg
+            self.draw(mouse_pos, True)
+
+            # actual loop
+            utility.render_text("Geometry Dash", (utility.get_fullscreen()[0] / 2, 50), round(50*scale), color="White", surface=self.display, center=True)
+            
+            # --- Draw and Update Button ---
+            play_btn.draw(self.display, True)
+            if play_btn.update(pygame.mouse.get_pos()):
+                self.run()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
+                    if event.key == pygame.K_F11:
+                        if utility.get_fullscreen() == self.FULL_SCREEN_SIZE:
+                            self.screen = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
+                        else:
+                            self.screen = pygame.display.set_mode(self.FULL_SCREEN_SIZE)
+                        center_x = utility.BASE_SIZE[0] / 2 - (btn_w / 2)
+                        center_y = utility.BASE_SIZE[1] / 2 - (btn_h / 2)
+                        play_btn.resize(pygame.Rect(center_x, center_y, btn_w, btn_h))
+
+                if event.type == pygame.VIDEORESIZE:  # Updated to VIDEORESIZE for modern pygame
+                    self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+                    center_x = utility.BASE_SIZE[0] / 2 - (btn_w / 2)
+                    center_y = utility.BASE_SIZE[1] / 2 - (btn_h / 2)
+                    play_btn.resize(pygame.Rect(center_x, center_y, btn_w, btn_h))
+
+            # Render to window
+            scaled_display = pygame.transform.scale(self.display, (window_w, window_h))
+            self.window.blit(scaled_display, (0, 0))
+            
+            pygame.display.update()
+
+
+
+    def draw(self, mouse_pos, main_menu = False):
         #Debug
         if self.rotation > self.rotation_to:
             rot_color = (255, 0, 0)
@@ -218,7 +300,7 @@ class Geometry_dash:
         # Update background tint
 
         color = pygame.Color(255, 255, 255)
-        if not self.world.editor:
+        if not self.world.editor or main_menu:
             color = pygame.Color(255, 255, 255)
             self.bg_hue = (self.bg_hue + 10 * self.dt) % 360
             color = pygame.Color(0)
@@ -228,7 +310,7 @@ class Geometry_dash:
         # draw background
         self.display.blit(bg_img, (self.bg_scroll, 0))
         self.display.blit(bg_img, (self.bg_scroll_2, 0))
-        if not self.world.editor:
+        if main_menu or not self.world.editor:
             self.bg_scroll -= self.speed * self.dt
             self.bg_scroll_2 -= self.speed * self.dt
 
@@ -241,7 +323,7 @@ class Geometry_dash:
             # Apply tint
             self.tint_surface.fill(color)
             self.display.blit(self.tint_surface, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
-
+        if main_menu: return
         pygame.draw.rect(self.display, "dark green", self.ground)
 
         if not self.world.editor: utility.render_text(f"DEATHS: {self.deaths}", (
@@ -325,7 +407,7 @@ class Geometry_dash:
         # add rotation to player
         if self.jump:
             if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
-                self.velocity.y -= self.jump_height
+                self.velocity.y = -self.jump_height
                 #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
                 self.jump = False
             else:
@@ -398,4 +480,4 @@ class Geometry_dash:
 if __name__ == '__main__':
     os.system('cls' if os.name == 'nt' else 'clear')  # reset console on start
     app = Geometry_dash(map_name="Trial.json")
-    app.run()
+    app.main_menu()
