@@ -351,20 +351,22 @@ class button:
     def draw(self, surface, hbox):
         # Blit the extracted image to the surface at the rect's location
         surface.blit(self.img.get_image(0), self.rect.topleft)
-        pygame.draw.rect(surface, (255, 0, 0), self.rect, 2) 
+        if hbox:
+            pygame.draw.rect(surface, (255, 0, 0), self.rect, 2)  # Draw hitbox if hbox is True
 
     def update(self, mouse_pos):
         action = False
         
         # Check if the adjusted mouse coordinates are over the button
         if self.rect.collidepoint(mouse_pos):
+            print("Mouse is over the button", self.clicked, pygame.mouse.get_pressed())
             # pygame.mouse.get_pressed() is the Left Click
-            if pygame.mouse.get_pressed() == 1 and not self.clicked:
+            if pygame.mouse.get_pressed()[0] and not self.clicked:
                 self.clicked = True
                 action = True
                 
         # Reset the clicked state when the mouse button is released
-        if pygame.mouse.get_pressed() == 0:
+        if not pygame.mouse.get_pressed()[0]:
             self.clicked = False
             
         return action

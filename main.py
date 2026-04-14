@@ -246,6 +246,7 @@ class Geometry_dash:
             utility.render_text("Geometry Dash", (utility.get_fullscreen()[0] / 2, 50), round(50*scale), color="White", surface=self.display, center=True)
             
             # --- Draw and Update Button ---
+            os.system("cls" if os.name == "nt" else "clear")  # Clear console for debugging
             play_btn.draw(self.display, True)
             if play_btn.update(pygame.mouse.get_pos()):
                 self.run()
