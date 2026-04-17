@@ -3,6 +3,8 @@ import os
 import sys
 import pygame  # main lib for rendering
 import numpy as np
+import player as p
+from ui import Card
 from world import *
 import music
 import utility
@@ -25,6 +27,7 @@ class Geometry_dash:
         self.FULL_SCREEN_SIZE = utility.get_fullscreen()
         self.last_screen_size = utility.BASE_SIZE
         self.window = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
+        self.scale = {"width": 1, "height": 1, "overall": 1}
         self.display = pygame.Surface(utility.BASE_SIZE)
         pygame.display.set_caption('Geometry Dash')
 
@@ -32,23 +35,6 @@ class Geometry_dash:
         self.clock = pygame.time.Clock()
         self.max_fps = 120  # tick rate
         self.dt = 0
-
-        # making of the player
-        self.player = pygame.Rect(200, 450, 30,
-                                  30)  # x, y, w, h ---> this is the hitbox of the player, not the actual image. The image will be drawn based on this rect, but can be rotated and scaled independently.
-        self.Player_rect = self.player.copy()  # This will be used for drawing the rotated image and collision detection
-        self.player_imgs = utility.SpriteSheet()
-        self.player_imgs.extract_single_image("player_sprites/Simple_cube.jpg", self.player.size, 255,
-                                              convert_alpha=False)  # Load the player image and set its size to match the player's hitbox. Set convert_alpha to False since the image doesn't have transparency.
-        self.rotation = 0
-        self.rotation_to = 0
-        self.rotation_velocity = 0
-        self.rotation_speed = 40
-        self.GRAVITY = -12  # all caps = constant
-        self.velocity = pygame.Vector2(0, 0)
-        self.mass = 4
-        self.jump = False
-        self.jump_height = 12
 
         # UI STUFF
         self.deaths = 0
@@ -76,18 +62,14 @@ class Geometry_dash:
         self.world.load_from_dict(utility.load_map(map_name))
 
         self.world.reset()
-        start_point = self.world.get_start_point()
-        self.player.x = start_point.x - self.world.x_scroll
-        self.player.y = start_point.y + (start_point.height - self.player.height)
-        self.Player_rect = self.player.copy()
+
+        self.p = p.Player(self.world) # player
 
         self.debug = True  # for hitbox
         self.Text_debug = False  # for console logs
-        self.simulate = False  # for simulating the player in the editor mode without actually controlling it
-        self.pos = pygame.Vector2(0, 0)  # for simulating the player in the editor mode without actually controlling it
-        self.max_vel = self.velocity.y # debug variable for max velocity reached
 
-
+        #get settings
+        self.settings = utility.load_map("settings.json", settings=True)
 
     # -------------------- MAIN LOOP --------------------
 
@@ -123,23 +105,21 @@ class Geometry_dash:
             self.draw(mouse_pos)
             # update physics or level editor
             if not self.world.editor:
-                self.apply_player_physics()
+                d = self.p.apply_physics(self.world, self.ground, self.debug, self.dt)
+                if not d: self.death()
             else:
                 move_type = self.world.level_editor(mouse_pos) #move_type[x][0] = bool (move in that direction?) : move_type[x][1] = int (velocity)
-                if move_type[0][0]: self.player.move_ip(0, move_type[0][1]);self.ground.move_ip(0, move_type[0][1])  # up
-                if move_type[1][0]: self.player.move_ip(0, move_type[1][1]);self.ground.move_ip(0, move_type[1][1])  # down
-                if move_type[2][0]: self.player.move_ip(move_type[2][1], 0)  # left
-                if move_type[3][0]: self.player.move_ip(move_type[3][1], 0)  # right
+                if move_type[0][0]: self.p.player.move_ip(0, move_type[0][1]);self.ground.move_ip(0, move_type[0][1])  # up
+                if move_type[1][0]: self.p.player.move_ip(0, move_type[1][1]);self.ground.move_ip(0, move_type[1][1])  # down
+                if move_type[2][0]: self.p.player.move_ip(move_type[2][1], 0)  # left
+                if move_type[3][0]: self.p.player.move_ip(move_type[3][1], 0)  # right
 
             collide = self.world.update_world(
-                self.world.grid * 10 * self.dt, self.player,
+                self.world.grid * 10 * self.dt, self.p.player,
                 self.debug)
 
             if collide and not self.debug:
                 self.death()
-            
-            if self.simulate:
-                pass
 
             # event handling
             for event in pygame.event.get():
@@ -163,20 +143,20 @@ class Geometry_dash:
                         if self.world.objects["PlayerSpawn"] is None: self.world.objects["PlayerSpawn"] = self.world.objects["Start"]  # If no spawn point is set, the start point will be the spawn point
                         self.world.reset()  # Reset camera scroll when toggling editor mode
                         start_point = self.world.get_start_point()
-                        self.player.x = start_point.x - self.world.x_scroll
-                        self.player.y = start_point.y + (start_point.height - self.player.height)
+                        self.p.player.x = start_point.x - self.world.x_scroll
+                        self.p.player.y = start_point.y + (start_point.height - self.p.player.height)
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
                         self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
                     if event.key == pygame.K_r and (event.mod & pygame.KMOD_CTRL):
                         self.world.set_level([[3,0,0,0],[5, 0, 0, 4]])
                         start_point = self.world.get_start_point()
-                        self.player.x = start_point.x - self.world.x_scroll
-                        self.player.y = start_point.y + (start_point.height - self.player.height)
+                        self.p.player.x = start_point.x - self.world.x_scroll
+                        self.p.player.y = start_point.y + (start_point.height - self.p.player.height)
                         self.ground.topleft = (0, 480)  # Reset ground position when toggling editor mode
 
                     if event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
                         data = self.world.__dict__()
-                        utility.save_map("Trial.json", data)
+                        utility.save_map("Stereo Madness.json", data)
 
                     if event.key == pygame.K_p and self.world.editor:
                         self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
@@ -248,8 +228,10 @@ class Geometry_dash:
             # --- Draw and Update Button ---
             os.system("cls" if os.name == "nt" else "clear")  # Clear console for debugging
             play_btn.draw(self.display, True)
-            if play_btn.update(pygame.mouse.get_pos()):
-                self.run()
+            if play_btn.update(mouse_pos):
+                    if pygame.mouse.get_pressed()[0]:
+                        self.levels_menu()  # Go to levels menu on click 
+                        #self.run()
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -261,35 +243,104 @@ class Geometry_dash:
                         sys.exit()
                     if event.key == pygame.K_F11:
                         if utility.get_fullscreen() == self.FULL_SCREEN_SIZE:
-                            self.screen = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
+                            pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
                         else:
-                            self.screen = pygame.display.set_mode(self.FULL_SCREEN_SIZE)
-                        center_x = utility.BASE_SIZE[0] / 2 - (btn_w / 2)
-                        center_y = utility.BASE_SIZE[1] / 2 - (btn_h / 2)
-                        play_btn.resize(pygame.Rect(center_x, center_y, btn_w, btn_h))
+                            pygame.display.set_mode(self.FULL_SCREEN_SIZE)
 
                 if event.type == pygame.VIDEORESIZE:  # Updated to VIDEORESIZE for modern pygame
                     self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
-                    center_x = utility.BASE_SIZE[0] / 2 - (btn_w / 2)
-                    center_y = utility.BASE_SIZE[1] / 2 - (btn_h / 2)
-                    play_btn.resize(pygame.Rect(center_x, center_y, btn_w, btn_h))
 
             # Render to window
             scaled_display = pygame.transform.scale(self.display, (window_w, window_h))
             self.window.blit(scaled_display, (0, 0))
-            
+            self.scale_window(window_w, window_h, **{"class": play_btn})
             pygame.display.update()
 
+    def levels_menu(self):
+        # --- Initialize UI Elements ---
+        # Calculate a centered position for the button using logical BASE_SIZE
+
+        #get all the levels
+        all_levels = self.settings["levels"]        
+        # Wait for the mouse button to be released before allowing interaction to prevent instant triggers
+        wait_for_release = pygame.mouse.get_pressed()[0]
+        
+        
+        cards = [Card(all_levels[i], pygame.Rect(utility.BASE_SIZE[0] / 2 - 100, 150 + i*250, 200, 200)) for i, level in enumerate(all_levels)]
+
+        while True:
+            # Calculate scaling
+            window_w, window_h = self.window.get_size()
+            base_h = utility.BASE_SIZE[1]
+
+            if window_h == 0: window_h = 1
+            scale = window_h / base_h # Calculate the scale factor based on height
+            logical_w = int(window_w / scale)
+            logical_h = base_h
+
+            if self.display.get_width() != logical_w or self.display.get_height() != logical_h:
+                if (self.display.get_width(), self.display.get_height()) != self.FULL_SCREEN_SIZE: 
+                    self.last_screen_size = (self.display.get_width(), self.display.get_height())
+                self.bg.rezize_images((logical_w, logical_h))
+                self.display = pygame.Surface((logical_w, logical_h))
+                self.tint_surface = pygame.Surface((logical_w, logical_h), pygame.SRCALPHA)
+                self.ground.width = logical_w
+                self.world.screen = self.display
+
+            # Mouse correction (Passes logical coordinates to the button)
+            mx, my = pygame.mouse.get_pos()
+            mouse_pos = (mx / scale, my / scale)
+
+            self.dt = self.clock.tick(self.max_fps) / 1000
+            self.display.fill((0, 0, 0))
+            
+            # draw the bg
+            self.draw(mouse_pos, True)
+
+            # actual loop
+            utility.render_text("Select LEVEL", (utility.get_fullscreen()[0] / 2, 50), round(50*scale), color="White", surface=self.display, center=True)
+            
+            # --- Draw and Update Button ---
+            os.system("cls" if os.name == "nt" else "clear")  # Clear console for debugging
+        
+            for card in cards:
+                card.draw(self.display)
+                if card.update(mouse_pos):
+                    self.world.load_from_dict(utility.load_map(f"{card.level_name}.json"))
+                    self.run()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        return
+                    if event.key == pygame.K_F11:
+                        if utility.get_fullscreen() == self.FULL_SCREEN_SIZE:
+                            self.screen = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
+                        else:
+                            self.screen = pygame.display.set_mode(self.FULL_SCREEN_SIZE)
+                      
+
+                if event.type == pygame.VIDEORESIZE:  # Updated to VIDEORESIZE for modern pygame
+                    self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
+            # Render to window
+            scaled_display = pygame.transform.scale(self.display, (window_w, window_h))
+            self.window.blit(scaled_display, (0, 0))
+            self.scale_window(window_w, window_h, **{"class": cards})
+            pygame.display.update()
 
 
     def draw(self, mouse_pos, main_menu = False):
         #Debug
+        """
         if self.rotation > self.rotation_to:
             rot_color = (255, 0, 0)
         elif self.rotation == self.rotation_to:
             rot_color = (255, 255, 255)
         else:
             rot_color = (0, 255, 0)
+        """
 
         # DRAW ORDER:
         # 1. Background (already filled with color)
@@ -331,15 +382,14 @@ class Geometry_dash:
             -((self.world.x_scroll)+500) + utility.get_fullscreen()[0] / 3, utility.get_fullscreen()[1] / 2), color="Black",
                                 surface=self.display)
 
-        # draw plaeyer
-        self.display.blit(self.player_imgs.get_image(0), self.Player_rect if not self.world.editor else self.player)
+        # draw player
+        self.display.blit(self.p.player_imgs.get_image(0), self.p.Player_rect if not self.world.editor else self.p.player)
 
         # draw music related stuff if music is playing and editor is enabled
         if self.world.editor: self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll)
 
         # draw UI and debug info
-        if self.debug:
-
+        if self.debug and False:
             pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.world.x_scroll, self.world.y_scroll)
             utility.render_text(f"FPS: {round(self.clock.get_fps())}", (10, 10), 20, surface=self.display)
             utility.render_text(f"Player: {self.player}", (10, 30), 20, surface=self.display)
@@ -368,111 +418,45 @@ class Geometry_dash:
 
             pygame.draw.rect(self.display, (255, 0, 0), self.player, 2)
             if not self.world.editor: pygame.draw.rect(self.display, (255, 0, 255), self.Player_rect, 2)
+            
+    def scale_window(self, w, h, **kwargs): 
+        self.scale = {
+        "width": self.window.get_width() / utility.BASE_SIZE[0], 
+        "height": self.window.get_height() / utility.BASE_SIZE[1],
+        "overall": min(self.window.get_width() / utility.BASE_SIZE[0], self.window.get_height() / utility.BASE_SIZE[1])
+        }
 
-    def apply_player_physics(self):
-
-        # Check if level ended or not
-        if not self.world.editor or not self.debug:
-            if self.world.end(self.player):
-                #exit()
-                pass
-
-        # update player first
-        self.player.move_ip(self.velocity*self.dt*100)
-
-        # grav implementation
-        self.velocity.y -= self.GRAVITY * self.mass * self.dt
-        #self.velocity.y = min(self.velocity.y, 20)
-        #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
-
-        # ground colliton
-        if self.player.colliderect(self.ground):  # rect vs rect: if collide => True no collide => False
-            self.jump = True
-            #self.rotation = 0
-            self.velocity.y = 0
-            self.player.y = (self.ground.y - self.player.h)
-
-        on_cube, level, dead = self.world.cube_collition(self.player,
-                                                         self.velocity.y)  # Check collision with the world using the rotated hitbox
-        if dead and not self.debug:
-           self.death()
-        if on_cube:
-            self.jump = True
-
-            self.velocity.y = 0
-            if level is not None:
-                self.player.y = level - self.player.h  # Align player with the top of the block
-
-        # update player rotation and everything else
-        # draw player
-        # add rotation to player
-        if self.jump:
-            if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
-                self.velocity.y = -self.jump_height
-                #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
-                self.jump = False
-            else:
-                if self.rotation_velocity > 0:
-                    self.smooth_rotation(self.rotation > self.rotation_to)
+        for key, value in kwargs.items(): 
+            if key == "class":
+                if type(value) == list:
+                    for obj in value:
+                        if hasattr(obj, "resize"):
+                            obj.resize(self.scale)
+                        else:
+                            raise Exception(f"Object of type {type(obj)} does not have a resize method")
                 else:
-                    self.smooth_rotation(self.rotation < self.rotation_to)
-        else:
-            self.rotation = (self.rotation - self.rotation_speed * 10 * self.dt) % 360  # here it was 600 before which does a full 360  also we do mod 360 so it doesn't go above 360 deg
-            self.rotation_to = self.rotation - self.rotation % 90  # In floor terms, subtracts rotation to the nearest floor of 90 degree angle
-            if self.rotation % 90 != self.rotation % 45: self.rotation_to += 90  # If the rotation is closer to the next 90 degree angle, rotate to that one instead
+                    if hasattr(value, "resize"):
+                        value.resize(self.scale)
+                    else:
+                        raise Exception(f"Object of type {type(value)} does not have a resize method")
 
-            if self.rotation > self.rotation_to:
-                self.rotation_velocity = -1 * self.rotation_speed
-            else:
-                self.rotation_velocity = self.rotation_speed
+        if self.display.get_size() != self.FULL_SCREEN_SIZE: 
+            self.last_screen_size = (w, h)
 
-        """ Works only on top of a cube not ground just copy the code from cube and paste it here for ONLY ROTATION"""
-        self.player_imgs.images[0] = pygame.transform.rotate(
-            self.player_imgs.original_image[0], self.rotation)
-
-        # Key the Black Pixels of the Player
-        self.player_imgs.original_image[0].set_colorkey((0, 0, 0))
-
-        # Center the Rotated Image on the Player's Hitbox
-        shift = self.player_imgs.get_image(0).get_rect()
-        x = self.player.x - (shift.w - self.player.w) / 2
-        y = self.player.y - (shift.h - self.player.h) / 2
-        self.Player_rect = pygame.Rect(x, y, shift.w, shift.h)
-
-    def simulate_player(self, speed):
-        # Simulating the player for debuging
-        pass
- 
     def death(self):
         self.world.reset()
         start_point = self.world.get_start_point()
-        self.player.x = start_point.x - self.world.x_scroll
-        self.player.y = start_point.y + (start_point.height - self.player.height)
-        self.velocity.y = 0
+        self.p.player.x = start_point.x - self.world.x_scroll
+        self.p.player.y = start_point.y + (start_point.height - self.p.player.height)
+        self.p.velocity.y = 0
         self.rotation = 0  # If collided with a cube kill_zone, exit the game
         self.deaths += 1
 
-    def smooth_rotation(self, condition):
-        """
-        :condition: bool
-        """
-
-        if condition:
-            pass
-        else:
-            self.rotation = self.rotation_to
-            return
-
-        self.rotation_to += self.rotation_velocity * self.rotation_speed * self.dt
-        if self.rotation_velocity > 2: self.rotation_velocity = self.rotation_velocity * 0.9
-        else: self.rotation_velocity = 2
-        print("smooth")
-
     def __str__(self):
         return f"""
-        Vel: {self.velocity}
+        Vel: {self.p.velocity}
         Dt: {self.dt}
-        Can Jump: {self.jump}
+        Can Jump: {self.p.jump}
         OS: {os.name}
         Cube Rotation: {math.sin(self.rotation):.3f}
         """
@@ -480,5 +464,5 @@ class Geometry_dash:
 
 if __name__ == '__main__':
     os.system('cls' if os.name == 'nt' else 'clear')  # reset console on start
-    app = Geometry_dash(map_name="Trial.json")
+    app = Geometry_dash(map_name="Stereo Madness.json")
     app.main_menu()

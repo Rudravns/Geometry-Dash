@@ -174,12 +174,12 @@ def save_map(path: str, data: dict) -> None:
     except IOError as e:
         raise IOError(f"Unable to save JSON at '{path}': {e}") from e
     
-def load_map(path: str) -> dict:
+def load_map(path: str, settings = False) -> dict:
     """Load a JSON file into a dictionary."""
     try:
         script_dir = os.path.dirname(os.path.abspath(__file__))
         BASE_DIR = os.path.abspath(
-            os.path.join(script_dir, "asset", "Map_levels")
+            os.path.join(script_dir, "asset", "Map_levels") if not settings else os.path.join(script_dir, "asset")
         )
         with open(os.path.join(BASE_DIR, path), 'r') as f:
             return json.load(f)
@@ -347,6 +347,7 @@ class button:
         self.font_size = font_size
         self.rect = rect
         self.clicked = False # Prevents continuous triggering if mouse is held down
+        self.org_rect = rect
 
     def draw(self, surface, hbox):
         # Blit the extracted image to the surface at the rect's location
@@ -359,11 +360,15 @@ class button:
         
         # Check if the adjusted mouse coordinates are over the button
         if self.rect.collidepoint(mouse_pos):
-            print("Mouse is over the button", self.clicked, pygame.mouse.get_pressed())
+            self.rect = self.org_rect.inflate(10, 10)  # Enlarge the button's rect for visual feedback
+            
+            #print("Mouse is over the button", self.clicked, pygame.mouse.get_pressed()) #for debug
             # pygame.mouse.get_pressed() is the Left Click
             if pygame.mouse.get_pressed()[0] and not self.clicked:
                 self.clicked = True
                 action = True
+        else:
+            self.rect = self.org_rect  # Reset to original size when not hovered
                 
         # Reset the clicked state when the mouse button is released
         if not pygame.mouse.get_pressed()[0]:
@@ -371,6 +376,11 @@ class button:
             
         return action
     
-    def resize(self, rect):
-        self.rect = rect
-        self.img.rezize_images(rect.size, 0)
+    def resize(self, scale: dict):
+        """Scale the button based on the provided scale dictionary."""
+        self.rect.width = self.org_rect.width * scale["overall"]
+        self.rect.height = self.org_rect.height * scale["overall"]
+        self.rect.x = self.org_rect.x * scale["width"]
+        self.rect.y = self.org_rect.y * scale["height"]
+        
+        self.img.rezize_images(self.rect.size, 0)

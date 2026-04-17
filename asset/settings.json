@@ -1,0 +1,12 @@
+{
+    "levels": ["Stereo Madness"],
+
+    "name": "player",
+    "completed levels": 0,
+
+    "settings": {
+        "debug_mode": true,
+        "show_hitboxes": true,
+        "volume": 0.5
+    }
+}
