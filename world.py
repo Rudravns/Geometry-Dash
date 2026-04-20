@@ -31,6 +31,7 @@ class Editor:
         # Camera (origin centered)
         width, height = self.screen.get_size()
         self.x_scroll = -width // 2
+        self.scroll_multiplyer = 1
         self.y_scroll = 0
         self.level_completion = 0
         self.level_dist = 0
@@ -48,7 +49,8 @@ class Editor:
             "Block": [],
             "Start": pygame.Rect(0, 440, self.grid, self.grid),
             "End": pygame.Rect(4240, 440, self.grid, self.grid),
-            "PlayerSpawn": None
+            "PlayerSpawn": None,
+            "JumpOrb": None
         }
 
         #init textures
@@ -81,7 +83,8 @@ class Editor:
         self.miss_tex = utility.SpriteSheet()
         self.miss_tex.extract_grid(path="Textures/missing.png", crop_size=(16, 16), scale=(self.grid, self.grid), alpha=255)
 
-
+        self.jump_orb_tex = utility.SpriteSheet()
+        #self.jump_orb_tex.extract_single_image(path="Textures/jump_orb", scale=(self.grid, self.grid), alpha=255)
 
 
         self.get_world()
@@ -95,20 +98,25 @@ class Editor:
 
         if self.movement_timer.has_elapsed():
 
+            if keys[pygame.K_LSHIFT]:
+                self.scroll_multiplyer = 2
+            if not keys[pygame.K_LSHIFT]:
+                self.scroll_multiplyer = 1
+
             if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-                self.x_scroll -= self.grid
+                self.x_scroll -= self.grid * self.scroll_multiplyer
                 movement_type[2] = [1, self.grid]
 
             if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                self.x_scroll += self.grid
+                self.x_scroll += self.grid * self.scroll_multiplyer
                 movement_type[3] = [1, -self.grid]
 
             if keys[pygame.K_UP] or keys[pygame.K_w]:
-                self.y_scroll -= self.grid
+                self.y_scroll -= self.grid * self.scroll_multiplyer
                 movement_type[0] = [1, self.grid]
 
             if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-                self.y_scroll += self.grid
+                self.y_scroll += self.grid * self.scroll_multiplyer
                 movement_type[1] = [1, -self.grid]
 
 
@@ -220,6 +228,14 @@ class Editor:
                         
                         if supported:
                             self.objects["PlayerSpawn"] = new_rect
+                case 6: # Jump Orb
+                    # Prevent overlap with spikes, start, end, or blocks
+                    if not any(spike.check_collition(new_rect, rect_to_rect=True) for spike in self.objects["Spike"]) \
+                    and not new_rect.colliderect(self.objects["Start"]) \
+                    and not new_rect.colliderect(self.objects["End"]) \
+                    and not any(block.colliderect(new_rect) for block in self.objects["Block"]):
+                        self.objects["JumpOrb"] = new_rect
+
                 case _:
                     raise ValueError("This block doesn't exist")
             
@@ -368,6 +384,10 @@ class Editor:
                 image = self.flag_tex.get_image(self.flag_img).convert_alpha()
             case 5: # Player Spawn
                 image = self.miss_tex.get_image(0).convert_alpha()
+            
+            case 6: # Jump Orb
+                image = self.jump_orb_tex.get_image(0).convert_alpha()
+            
             case _: # Missing
                 image = self.miss_tex.get_image(0).convert_alpha()
         if not skip:
@@ -433,6 +453,11 @@ class Editor:
                     self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Down"))
                 elif block == 7:
                     self.objects["Spike"].append(Spike(world_x, world_y, self.grid, side="Pointing Left"))
+                elif block == 8:
+                    self.objects["JumpOrb"] = pygame.Rect(world_x, world_y, self.grid, self.grid)
+                else:
+                    continue
+                    #raise Exception(f"Invalid block type {block} at ({x}, {y}) in level data")
         # get the distance from the start to te flag
         self.level_dist = (self.get_start_point().x) + (self.objects["End"].x) + 400
 

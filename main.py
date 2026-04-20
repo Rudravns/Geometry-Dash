@@ -31,6 +31,9 @@ class Geometry_dash:
         self.display = pygame.Surface(utility.BASE_SIZE)
         pygame.display.set_caption('Geometry Dash')
 
+        #get settings
+        self.settings = utility.load_map("settings.json", settings=True)
+
         # timing
         self.clock = pygame.time.Clock()
         self.max_fps = 120  # tick rate
@@ -39,6 +42,7 @@ class Geometry_dash:
         # UI STUFF
         self.deaths = 0
         self.percentage = 0
+
 
         # background
         self.ground = pygame.Rect(0, 480, 1200, 800)
@@ -51,7 +55,7 @@ class Geometry_dash:
         self.tint_surface = pygame.Surface(utility.BASE_SIZE, pygame.SRCALPHA)
 
         # SFX Setup
-        self.sfx = music.Music(1)
+        self.sfx = music.Music(1, self.settings["settings"]["volume"])
 
         # Editor 
         self.world = Editor(
@@ -68,8 +72,10 @@ class Geometry_dash:
         self.debug = True  # for hitbox
         self.Text_debug = False  # for console logs
 
-        #get settings
-        self.settings = utility.load_map("settings.json", settings=True)
+       
+
+        #Music
+        self.sfx.prevscoll = self.world.x_scroll
 
     # -------------------- MAIN LOOP --------------------
 
@@ -105,8 +111,9 @@ class Geometry_dash:
             self.draw(mouse_pos)
             # update physics or level editor
             if not self.world.editor:
-                d = self.p.apply_physics(self.world, self.ground, self.debug, self.dt)
-                if not d: self.death()
+                d = self.p.check_gamemode(self.world, self.ground, self.debug, self.dt)
+                print(d)
+                if d: self.death()
             else:
                 move_type = self.world.level_editor(mouse_pos) #move_type[x][0] = bool (move in that direction?) : move_type[x][1] = int (velocity)
                 if move_type[0][0]: self.p.player.move_ip(0, move_type[0][1]);self.ground.move_ip(0, move_type[0][1])  # up
@@ -157,6 +164,7 @@ class Geometry_dash:
                     if event.key == pygame.K_s and (event.mod & pygame.KMOD_CTRL):
                         data = self.world.__dict__()
                         utility.save_map("Stereo Madness.json", data)
+                        print("Level saved to Stereo Madness.json")
 
                     if event.key == pygame.K_p and self.world.editor:
                         self.sfx.music_controls(obj=self.world.objects, scroll=self.world.x_scroll)
@@ -174,13 +182,15 @@ class Geometry_dash:
             scaled_display = pygame.transform.scale(self.display, (window_w, window_h))
             self.window.blit(scaled_display, (0, 0))
 
+            self.sfx.prevscoll = self.world.x_scroll
+
             pygame.display.update()
             if self.Text_debug:
                 os.system('cls' if os.name == 'nt' else 'clear')
                 #print(self)
                 #print(self.world)
                 #print(collide)
-                print(self.dt)
+                #print(self.dt)
 
     # -------------------- MAIN Menu --------------------
     def main_menu(self):

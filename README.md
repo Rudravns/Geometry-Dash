@@ -32,6 +32,13 @@ py -m pip install pygame
 
 ## Installation
 
+Meathod 1: 
+1. Install 
+
+
+
+Meathod 2:
+
 1. Clone the repository
 ```bash
 git clone https://github.com/Rudravns/Geometry-Dash.git
@@ -54,17 +61,19 @@ pip install -r requirements.txt
 pip install pygame
 ```
 
+
+
 ---
 
 ## Running the game
 
-Run the main script. Example:
+Run the main script.
 ```bash
 python main.py
 ```
 
 
-If you see errors, check the repository root for a README or a `docs/` folder describing the exact entrypoint.
+If you see errors, check the repository root for a README folder describing the exact entrypoint.
 
 ---
 
@@ -72,7 +81,6 @@ If you see errors, check the repository root for a README or a `docs/` folder de
 
 Default keyboard controls (common setup — confirm by checking the code):
 - Space / Up Arrow: Jump
-- Down Arrow: Hold to fall faster (if implemented)
 - Esc: Pause / quit
 
 Controls can be changed in the game settings or the input handling module.
@@ -130,11 +138,12 @@ Free creative license
 
 ## Credits
 
-- Created by Rudravns and [Kian](https://github.com/xgamerz2020-rgb)
-- Assets, music, and additional libraries should credit original creators where applicable.
+- Created by Rudravns and [xgamerz2020-rgb](https://github.com/xgamerz2020-rgb)
+- Some assets are created by us while others are taken from geometry dash, the music is taken from geometry dash
 
 ---
 
+
 ## Contact
 
-For questions or collaboration, open an issue or reach out via GitHub: [Rudravns](https://github.com/Rudravns)
+For questions or collaboration, open an issue or reach out via GitHub: [Rudravns](https://github.com/Rudravns) or [xgamerz2020-rgb](https://github.com/xgamerz2020-rgb)

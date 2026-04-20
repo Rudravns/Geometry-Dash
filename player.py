@@ -8,6 +8,7 @@ class Player:
         # making of the player
         self.player = pygame.Rect(200, 450, 30, 30)  # x, y, w, h ---> this is the hitbox of the player, not the actual image. The image will be drawn based on this rect, but can be rotated and scaled independently.
         self.Player_rect = self.player.copy()  # This will be used for drawing the rotated image and collision detection
+        self.gamemode = "cube"
         self.player_imgs = utility.SpriteSheet()
         self.player_imgs.extract_single_image("player_sprites/Simple_cube.jpg", self.player.size, 255,
                                               convert_alpha=False)  # Load the player image and set its size to match the player's hitbox. Set convert_alpha to False since the image doesn't have transparency.
@@ -15,30 +16,36 @@ class Player:
         self.rotation_to = 0
         self.rotation_velocity = 0
         self.rotation_speed = 40
-        self.GRAVITY = -12  # all caps = constant
+        self.GRAVITY = -1.4  # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
         self.mass = 4
         self.jump = False
         self.jump_height = 12
+        self.strafe_height = 5
 
         start_point = world.get_start_point()
         self.x = start_point.x - world.x_scroll
         self.y = start_point.y + (start_point.height - self.player.height)
         self.Player_rect = self.player.copy()
     
-    def apply_physics(self, world, ground, debug, dt):
+    def check_gamemode(self, world, ground, debug, dt):
+        # update player first
+        self.player.move_ip(0, self.velocity.y*dt*100)  # move the player based on its velocity. We multiply by dt to make the movement frame rate independent, and by 100 to convert from seconds to milliseconds since pygame's clock works in milliseconds.
 
+        if self.gamemode == "cube":
+            self.cube_physics(world, ground, debug, dt)
+        elif self.gamemode == "ship":
+            self.ship_physics(world, ground, debug, dt)
+    
+    def cube_physics(self, world, ground, debug, dt):
         # Check if level ended or not
         if not world.editor or not debug:
             if world.end(self.player):
                 #exit()
                 pass
 
-        # update player first
-        self.player.move_ip(self.velocity*dt*100)
-
         # grav implementation
-        self.velocity.y -= self.GRAVITY * self.mass * dt
+        self.velocity.y -= self.GRAVITY * self.mass * dt * 10
         #self.velocity.y = min(self.velocity.y, 20)
         #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
 
@@ -52,7 +59,7 @@ class Player:
         on_cube, level, dead = world.cube_collition(self.player,
                                                          self.velocity.y)  # Check collision with the world using the rotated hitbox
         if dead and not debug:
-           return False
+           return True
         if on_cube:
             self.jump = True
 
@@ -65,7 +72,7 @@ class Player:
         # add rotation to player
         if self.jump:
             if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
-                self.velocity.y = -self.jump_height * dt 
+                self.velocity.y = -self.jump_height
                 #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
                 self.jump = False
             else:
@@ -95,6 +102,9 @@ class Player:
         x = self.player.x - (shift.w - self.player.w) / 2
         y = self.player.y - (shift.h - self.player.h) / 2
         self.Player_rect = pygame.Rect(x, y, shift.w, shift.h)
+
+    def ship_physics(self, world, ground, debug, dt):
+        pass
 
     def smooth_rotation(self, condition, dt):
         """

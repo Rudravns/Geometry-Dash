@@ -5,20 +5,22 @@ pygame.mixer.init()
 
 
 class Music:
-    def __init__(self, song):
+    def __init__(self, song, volume=1.0):
         self.song = song
         self.main_mpath = "asset/Sounds/Music"
         self.speed = 0
         self.song_player = 0
         self.pos = 0
         self.MS_RATIO = 600/1500
+        self.prevscoll = 0
+        self.volume = volume    
 
         self.musics:dict = {
             "Level 1" : f"{self.main_mpath}/level1.mp3",
             "Level 2" : f"{self.main_mpath}/level2.mp3",
             "Level 3" : f"{self.main_mpath}/level3.mp3"
         } #write path in here for each song
-
+        pygame.mixer.music.set_volume(self.volume)
         self.music_playing:list = [False, False, False] #one for each song in the song list
 
     def music_controls(self, start_pos = 0, obj=None, scroll=0):
@@ -44,7 +46,7 @@ class Music:
     def draw(self, screen, speed, xscroll):
         if not self.music_playing[self.song]: return False
 
-        self.song_player += speed
+        self.song_player += speed - (xscroll - self.prevscoll)
 
         if self.song_player <= 600:
             self.pos = pygame.mixer.music.get_pos()
@@ -54,6 +56,8 @@ class Music:
         #print(round(self.song_player, 2))
         
         pygame.draw.line(screen, (255, 0, 0), (self.song_player, 0), (self.song_player, screen.get_height()), 2)
+
+        #self.prevscoll = xscroll
 
     def get_frequency(self):
         return pygame.mixer.music.get_volume()
