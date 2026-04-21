@@ -15,12 +15,12 @@ class Player:
         self.rotation = 0
         self.rotation_to = 0
         self.rotation_velocity = 0
-        self.rotation_speed = 40
+        self.rotation_speed = 45
         self.GRAVITY = -1.4  # all caps = constant
         self.velocity = pygame.Vector2(0, 0)
-        self.mass = 4
+        self.mass = 3.6
         self.jump = False
-        self.jump_height = 12
+        self.jump_height = 10.2
         self.strafe_height = 5
 
         start_point = world.get_start_point()
@@ -95,7 +95,7 @@ class Player:
             self.player_imgs.original_image[0], self.rotation)
 
         # Key the Black Pixels of the Player
-        self.player_imgs.original_image[0].set_colorkey((0, 0, 0))
+        self.player_imgs.images[0].set_colorkey((0, 0, 0))
 
         # Center the Rotated Image on the Player's Hitbox
         shift = self.player_imgs.get_image(0).get_rect()

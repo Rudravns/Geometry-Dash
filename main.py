@@ -112,7 +112,7 @@ class Geometry_dash:
             # update physics or level editor
             if not self.world.editor:
                 d = self.p.check_gamemode(self.world, self.ground, self.debug, self.dt)
-                print(d)
+                #print(d)
                 if d: self.death()
             else:
                 move_type = self.world.level_editor(mouse_pos) #move_type[x][0] = bool (move in that direction?) : move_type[x][1] = int (velocity)
