@@ -760,8 +760,6 @@ class Spike:
         self.update_geometry()
 
     def update_geometry(self):
-
-
         match self.type:
             case "Pointing Up":
                 self.vert = [
@@ -774,27 +772,29 @@ class Spike:
                     [self.x, self.y],
                     [self.x + self.size // 2, self.y + self.size],
                     [self.x + self.size, self.y],
-                   
                 ]
                 self.spike_tex.rotate_images(180)
             case "Pointing Left":
+                # FIX: Added depth to the triangle (X moves from self.x to self.x + size)
                 self.vert = [
                     [self.x, self.y + self.size // 2],
-                    [self.x, self.y],
-                    [self.x, self.y + self.size],
+                    [self.x + self.size, self.y],
+                    [self.x + self.size, self.y + self.size],
                 ]
                 self.spike_tex.rotate_images(90)
             case "Pointing Right":
+                # FIX: Added depth to the triangle
                 self.vert = [
                     [self.x + self.size, self.y + self.size // 2],
-                    [self.x + self.size, self.y],
-                    [self.x + self.size, self.y + self.size],
+                    [self.x, self.y],
+                    [self.x, self.y + self.size],
                 ]
                 self.spike_tex.rotate_images(270)
             case _:
                 raise ValueError("This side doesn't exist")
 
-        self.collision_rect = self.create_collision_rect()
+        # Simplified Collision Rect for Editor Selection
+        self.collision_rect = pygame.Rect(self.x, self.y, self.size, self.size)
 
     def create_collision_rect(self):
         p1, p2, p3 = self.vert
@@ -823,18 +823,10 @@ class Spike:
             pygame.draw.rect(screen, self.color, debug_rect, 1)
 
     def check_collition(self, hitbox: pygame.Rect, rect_to_rect: bool = False) -> bool:
-        """
         if rect_to_rect:
-            return hitbox.colliderect(self.collision_rect)
-        spike_rect = pygame.Rect(self.x, self.y, self.size, self.size)
-        if not hitbox.colliderect(spike_rect):
-            return False
-        lines = [(self.vert[0], self.vert[1]), (self.vert[1], self.vert[2]), (self.vert[2], self.vert[0])]
-        for start, end in lines:
-            if hitbox.clipline(start, end):
-                return True
-        return hitbox.collidepoint(self.vert[0])
-        """
+            return self.collision_rect.colliderect(hitbox)
+        
+
         return self.collision_rect.colliderect(hitbox)
 
     def __str__(self):
