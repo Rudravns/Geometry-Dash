@@ -399,6 +399,7 @@ class Geometry_dash:
         if self.world.editor: self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll)
 
         # draw UI and debug info
+        utility.render_text(f"Mouse Pos: {((mouse_pos.x - mouse_pos.x % self.world.grid) + self.world.x_scroll, mouse_pos.y)}", (10, 10), 20, surface=self.display)
         if self.debug and False:
             pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.world.x_scroll, self.world.y_scroll)
             utility.render_text(f"FPS: {round(self.clock.get_fps())}", (10, 10), 20, surface=self.display)
