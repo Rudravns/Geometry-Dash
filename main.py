@@ -1,4 +1,3 @@
-from email import utils
 import os
 import sys
 import pygame  # main lib for rendering
@@ -10,9 +9,6 @@ import music
 import utility
 import math
 
-"""
-var = utility.load_sound("Music/file")
-"""
 
 class Geometry_dash:
 
@@ -257,6 +253,12 @@ class Geometry_dash:
                         else:
                             pygame.display.set_mode(self.FULL_SCREEN_SIZE)
 
+                        #turn of debug(stop showing hitboxes) and player death enebles
+                    if event.key == pygame.K_F3:
+                        self.debug = not self.debug
+                         
+
+
                 if event.type == pygame.VIDEORESIZE:  # Updated to VIDEORESIZE for modern pygame
                     self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
 
@@ -330,7 +332,8 @@ class Geometry_dash:
                             self.screen = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
                         else:
                             self.screen = pygame.display.set_mode(self.FULL_SCREEN_SIZE)
-                      
+                    if event.key == pygame.K_F2:
+                        self.debug = not self.debug
 
                 if event.type == pygame.VIDEORESIZE:  # Updated to VIDEORESIZE for modern pygame
                     self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
@@ -373,8 +376,8 @@ class Geometry_dash:
         self.display.blit(bg_img, (self.bg_scroll, 0))
         self.display.blit(bg_img, (self.bg_scroll_2, 0))
         if main_menu or not self.world.editor:
-            self.bg_scroll -= self.speed * self.dt
-            self.bg_scroll_2 -= self.speed * self.dt
+            self.bg_scroll -= self.speed * self.dt * 0.5
+            self.bg_scroll_2 -= self.speed * self.dt * 0.5
 
             bg_width = bg_img.get_width()
             if self.bg_scroll <= -bg_width:
@@ -389,7 +392,7 @@ class Geometry_dash:
         pygame.draw.rect(self.display, "dark green", self.ground)
 
         if not self.world.editor: utility.render_text(f"DEATHS: {self.deaths}", (
-            -((self.world.x_scroll)+500) + utility.get_fullscreen()[0] / 3, utility.get_fullscreen()[1] / 2), color="Black",
+            -((self.world.x_scroll)+100) + utility.get_fullscreen()[0] / 3, utility.get_fullscreen()[1] /3), color="Black",
                                 surface=self.display)
 
         # draw player
@@ -399,7 +402,10 @@ class Geometry_dash:
         if self.world.editor: self.sfx.draw(self.display, self.world.grid * 10 * self.dt, self.world.x_scroll)
 
         # draw UI and debug info
-        utility.render_text(f"Mouse Pos: {((mouse_pos.x - mouse_pos.x % self.world.grid) + self.world.x_scroll, mouse_pos.y)}", (10, 10), 20, surface=self.display)
+        """ pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.world.x_scroll, self.world.y_scroll)
+        utility.render_text(
+                    f"Mouse Grid: ({(pos.x // self.world.grid) * self.world.grid}, {(pos.y // self.world.grid) * self.world.grid})",
+                    (10, 90), 20, surface=self.display)"""
         if self.debug and False:
             pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.world.x_scroll, self.world.y_scroll)
             utility.render_text(f"FPS: {round(self.clock.get_fps())}", (10, 10), 20, surface=self.display)

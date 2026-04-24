@@ -10,8 +10,7 @@ class Player:
         self.Player_rect = self.player.copy()  # This will be used for drawing the rotated image and collision detection
         self.gamemode = "cube"
         self.player_imgs = utility.SpriteSheet()
-        self.player_imgs.extract_single_image("player_sprites/Simple_cube.jpg", self.player.size, 255,
-                                              convert_alpha=False)  # Load the player image and set its size to match the player's hitbox. Set convert_alpha to False since the image doesn't have transparency.
+        self.player_imgs.extract_single_image("player_sprites/Simple_cube.jpg", self.player.size, 255)# Load the player image and set its size to match the player's hitbox. Set convert_alpha to False since the image doesn't have transparency.
         self.rotation = 0
         self.rotation_to = 0
         self.rotation_velocity = 0
