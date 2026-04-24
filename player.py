@@ -20,7 +20,8 @@ class Player:
         self.mass = 3.6
         self.jump = False
         self.jump_height = 10.2
-        self.strafe_height = 5
+        self.air_friction = 0.9
+        self.max_fly = 2.4
 
         start_point = world.get_start_point()
         self.x = start_point.x - world.x_scroll
@@ -32,8 +33,12 @@ class Player:
         self.player.move_ip(0, self.velocity.y*dt*100)  # move the player based on its velocity. We multiply by dt to make the movement frame rate independent, and by 100 to convert from seconds to milliseconds since pygame's clock works in milliseconds.
 
         if self.gamemode == "cube":
+            self.GRAVITY = -1.4
+            self.mass = 3.6
             self.cube_physics(world, ground, debug, dt)
         elif self.gamemode == "ship":
+            self.GRAVITY = -0.8
+            self.mass = 2.4
             self.ship_physics(world, ground, debug, dt)
     
     def cube_physics(self, world, ground, debug, dt):
@@ -49,14 +54,15 @@ class Player:
         #self.velocity.y = np.lerp(self.velocity.y, -self.jump_height, 0.5)
 
         # ground colliton
+        self.player.y += 1 #Move player down 1 pixel to check if it's colliding with the ground or cubes
         if self.player.colliderect(ground):  # rect vs rect: if collide => True no collide => False
             self.jump = True
             #self.rotation = 0
             self.velocity.y = 0
             self.player.y = (ground.y - self.player.h)
+        else: self.jump = False
 
-        on_cube, level, dead = world.cube_collition(self.player,
-                                                         self.velocity.y)  # Check collision with the world using the rotated hitbox
+        on_cube, level, dead = world.cube_collition(self.player, self.velocity.y)  # Check collision with the world using the rotated hitbox
         if dead and not debug:
            return True
         if on_cube:
@@ -88,8 +94,9 @@ class Player:
                 self.rotation_velocity = -1 * self.rotation_speed
             else:
                 self.rotation_velocity = self.rotation_speed
-
         """ Works only on top of a cube not ground just copy the code from cube and paste it here for ONLY ROTATION"""
+
+    def rotate(self):
         self.player_imgs.images[0] = pygame.transform.rotate(
             self.player_imgs.original_image[0], self.rotation)
 
@@ -103,7 +110,11 @@ class Player:
         self.Player_rect = pygame.Rect(x, y, shift.w, shift.h)
 
     def ship_physics(self, world, ground, debug, dt):
-        pass   
+        self.velocity.y -= (self.mass * self.GRAVITY * dt * 10) * self.max_fly
+        if pygame.key.get_pressed()[pygame.K_SPACE] or pygame.key.get_pressed()[pygame.K_UP] or pygame.mouse.get_pressed()[0]:
+            self.velocity.y += (self.mass * self.GRAVITY * dt * 10) * (self.max_fly * 2)
+        self.velocity.y = self.velocity.y * self.air_friction
+
 
     def smooth_rotation(self, condition, dt):
         """
@@ -119,4 +130,11 @@ class Player:
         self.rotation_to += self.rotation_velocity * self.rotation_speed * dt
         if self.rotation_velocity > 2: self.rotation_velocity = self.rotation_velocity * 0.9
         else: self.rotation_velocity = 2
-        print("smooth")
+        #print("smooth")
+
+    def debug_draw(self, y, screen):
+        utility.render_text(f"Rotation: {self.rotation:.2f}", (10, y), 20, surface=screen)
+        utility.render_text(f"Rotation To: {self.rotation_to:.0f}", (10, y + 20), 20, surface=screen)
+        utility.render_text(f"Jump: {self.jump}", (10, y + 40), 20, surface=screen)
+        utility.render_text(f"Velocity: {self.velocity.y:.2f}", (10, y + 60), 20, surface=screen)
+        return y + 20 * 4 # 20 is space between lines, 4 is the number of lines

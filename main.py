@@ -32,7 +32,7 @@ class Geometry_dash:
 
         # timing
         self.clock = pygame.time.Clock()
-        self.max_fps = 120  # tick rate
+        self.max_fps = 60  # tick rate
         self.dt = 0
 
         # UI STUFF
@@ -170,6 +170,10 @@ class Geometry_dash:
                             self.screen = pygame.display.set_mode(utility.BASE_SIZE, pygame.RESIZABLE)
                         else:
                             self.screen = pygame.display.set_mode(self.FULL_SCREEN_SIZE)
+                    
+                    if event.key == pygame.K_n and not self.world.editor:
+                        self.p.velocity.y = 0
+                        self.p.gamemode = "ship" if self.p.gamemode == "cube" else "cube"
 
                 if event.type == pygame.VIDEORESIZE:  # Updated to VIDEORESIZE for modern pygame
                     self.window = pygame.display.set_mode((event.w, event.h), pygame.RESIZABLE)
@@ -396,6 +400,7 @@ class Geometry_dash:
                                 surface=self.display)
 
         # draw player
+        self.p.rotate()
         self.display.blit(self.p.player_imgs.get_image(0), self.p.Player_rect if not self.world.editor else self.p.player)
 
         # draw music related stuff if music is playing and editor is enabled
@@ -406,6 +411,10 @@ class Geometry_dash:
         utility.render_text(
                     f"Mouse Grid: ({(pos.x // self.world.grid) * self.world.grid}, {(pos.y // self.world.grid) * self.world.grid})",
                     (10, 90), 20, surface=self.display)"""
+        if self.debug:
+            utility.render_text(f"FPS: {round(self.clock.get_fps(), 1)}", (pygame.display.get_surface().get_width() - 200, 10), 40, surface=self.display)
+            y = 10
+            y = self.p.debug_draw(y, self.display)
         if self.debug and False:
             pos = pygame.Vector2(mouse_pos) + pygame.Vector2(self.world.x_scroll, self.world.y_scroll)
             utility.render_text(f"FPS: {round(self.clock.get_fps())}", (10, 10), 20, surface=self.display)
