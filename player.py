@@ -104,7 +104,7 @@ class Player:
         self.Player_rect = pygame.Rect(x, y, shift.w, shift.h)
 
     def ship_physics(self, world, ground, debug, dt):
-        pass
+        pass   
 
     def smooth_rotation(self, condition, dt):
         """
